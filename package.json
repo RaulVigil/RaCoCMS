@@ -1,0 +1,33 @@
+{
+  "name": "raco-cms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RaCo CMS — Headless CMS con IA, modular y autoalojable",
+  "scripts": {
+    "dev:api": "pnpm --filter @raco/api dev",
+    "dev:admin": "pnpm --filter @raco/admin dev",
+    "dev:front": "pnpm --filter @raco/front dev",
+    "dev": "pnpm run --parallel dev:api dev:admin dev:front",
+    "build:api": "pnpm --filter @raco/api build",
+    "build:admin": "pnpm --filter @raco/admin build",
+    "build:front": "pnpm --filter @raco/front build",
+    "build": "pnpm run build:api && pnpm run build:admin && pnpm run build:front",
+    "lint": "pnpm -r lint",
+    "lint:root": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "pnpm -r type-check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
