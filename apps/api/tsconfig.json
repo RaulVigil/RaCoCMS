@@ -1,8 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "moduleResolution": "node"
   },
   "include": ["src/**/*"],
   "references": [{ "path": "../../packages/shared" }]
