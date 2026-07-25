@@ -27,5 +27,8 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 
+# Documentation (local only)
+Plans/
+
 # Uploads / Media
 uploads/
