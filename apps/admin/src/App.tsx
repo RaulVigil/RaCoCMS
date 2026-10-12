@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Collections from './pages/Collections';
 import Entries from './pages/Entries';
+import FieldGroups from './pages/FieldGroups';
+import Taxonomies from './pages/Taxonomies';
 import Templates from './pages/Templates';
 import GlobalParts from './pages/GlobalParts';
 import Menus from './pages/Menus';
@@ -26,8 +28,11 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="pages" element={<Entries />} />
           <Route path="collections" element={<Collections />} />
-          <Route path="entries" element={<Entries />} />
+          <Route path="collections/:collectionId" element={<Entries />} />
+          <Route path="field-groups" element={<FieldGroups />} />
+          <Route path="taxonomies" element={<Taxonomies />} />
           <Route path="templates" element={<Templates />} />
           <Route path="global-parts" element={<GlobalParts />} />
           <Route path="menus" element={<Menus />} />

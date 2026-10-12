@@ -30,6 +30,41 @@ export interface IEntry {
 
 export type EntryStatus = 'draft' | 'published' | 'archived';
 
+// --- 2.1 Taxonomías (tipo ACF) ---
+export interface ITaxonomy {
+  id: string;
+  name: string;
+  collectionId: string;
+  hierarchical: boolean;
+  terms: ITaxonomyTerm[];
+}
+
+export interface ITaxonomyTerm {
+  id: string;
+  name: string;
+  slug: string;
+  parentId?: string;
+}
+
+// --- 2.2 Grupos de Campos (tipo ACF Field Groups) ---
+export type FieldType = 'text' | 'textarea' | 'richtext' | 'image' | 'select' | 'toggle' | 'number' | 'date' | 'url';
+
+export interface IFieldDefinition {
+  key: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  options?: string[]; // para tipo select
+  defaultValue?: unknown;
+}
+
+export interface IFieldGroup {
+  id: number;
+  name: string;
+  collectionId: string;
+  fields: IFieldDefinition[];
+}
+
 // --- 3. Theme Builder y Partes Globales ---
 export interface ITemplate {
   id: number;
