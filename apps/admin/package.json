@@ -11,7 +11,11 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@raco/blocks": "workspace:*",
     "@raco/shared": "workspace:*",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "lucide-react": "^0.468.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",

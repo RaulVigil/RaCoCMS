@@ -32,3 +32,23 @@ export const api = {
     request<T>(url, { method: 'PUT', body: JSON.stringify(data) }),
   delete: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
 };
+
+// Subida de archivos: multipart, sin el Content-Type JSON de request()
+export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
+  const token = getToken();
+  const body = new FormData();
+  body.append('file', file);
+
+  const res = await fetch(`${BASE}/media/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Error al subir el archivo' }));
+    throw new Error(err.message || `Error ${res.status}`);
+  }
+
+  return res.json();
+}

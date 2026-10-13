@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -7,12 +8,21 @@ import Dashboard from './pages/Dashboard';
 import Collections from './pages/Collections';
 import Entries from './pages/Entries';
 import FieldGroups from './pages/FieldGroups';
+import FieldGroupEditor from './pages/FieldGroupEditor';
 import Taxonomies from './pages/Taxonomies';
+import TaxonomyTerms from './pages/TaxonomyTerms';
 import Templates from './pages/Templates';
 import GlobalParts from './pages/GlobalParts';
 import Menus from './pages/Menus';
 import Media from './pages/Media';
 import Ai from './pages/Ai';
+
+// El editor arrastra Tiptap, se carga solo cuando se abre una entrada
+const EntryEditor = lazy(() => import('./pages/EntryEditor'));
+// Usa el compilador de Tailwind en vivo para la vista previa
+const SiteSettings = lazy(() => import('./pages/SiteSettings'));
+
+const loading = <p className="text-sm text-tertiary">Cargando...</p>;
 
 export default function App() {
   return (
@@ -28,16 +38,34 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
-          <Route path="pages" element={<Entries />} />
+          <Route path="pages" element={<Navigate to="/collections/pages" replace />} />
           <Route path="collections" element={<Collections />} />
           <Route path="collections/:collectionId" element={<Entries />} />
+          <Route
+            path="collections/:collectionId/:entryId"
+            element={
+              <Suspense fallback={loading}>
+                <EntryEditor />
+              </Suspense>
+            }
+          />
           <Route path="field-groups" element={<FieldGroups />} />
+          <Route path="field-groups/:groupId" element={<FieldGroupEditor />} />
           <Route path="taxonomies" element={<Taxonomies />} />
+          <Route path="taxonomies/:taxonomyId" element={<TaxonomyTerms />} />
           <Route path="templates" element={<Templates />} />
           <Route path="global-parts" element={<GlobalParts />} />
           <Route path="menus" element={<Menus />} />
           <Route path="media" element={<Media />} />
           <Route path="ai" element={<Ai />} />
+          <Route
+            path="settings"
+            element={
+              <Suspense fallback={loading}>
+                <SiteSettings />
+              </Suspense>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

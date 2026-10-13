@@ -17,6 +17,14 @@ export class Collection {
   @Column({ type: 'json' })
   schema: Record<string, unknown>;
 
+  // Colecciones del sistema (ej. "pages"): siempre existen y no se pueden borrar
+  @Column({ default: false })
+  isNative: boolean;
+
+  // Sus entradas se diseñan con el constructor visual (como activar Divi en un post type)
+  @Column({ default: false })
+  useBuilder: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

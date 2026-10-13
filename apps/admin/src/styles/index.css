@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Clases de los bloques del constructor (paquete compartido) */
+@source '../../../../packages/blocks/src';
+
 @theme {
   --color-primary: #334155;
   --color-secondary: #22d3ee;

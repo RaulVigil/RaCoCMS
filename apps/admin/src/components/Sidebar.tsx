@@ -14,14 +14,17 @@ import {
   ChevronDown,
   File,
   FolderOpen,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { onStructureChanged } from '../lib/events';
 import logo from '../assets/logo-fondo-blanco.png';
 
 interface Collection {
   id: string;
   name: string;
+  isNative?: boolean;
 }
 
 interface Taxonomy {
@@ -39,8 +42,12 @@ export default function Sidebar() {
   const [openCol, setOpenCol] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<Collection[]>('/collections').then(setCollections).catch(() => {});
-    api.get<Taxonomy[]>('/taxonomies').then(setTaxonomies).catch(() => {});
+    const load = () => {
+      api.get<Collection[]>('/collections').then(setCollections).catch(() => {});
+      api.get<Taxonomy[]>('/taxonomies').then(setTaxonomies).catch(() => {});
+    };
+    load();
+    return onStructureChanged(load);
   }, []);
 
   function handleLogout() {
@@ -67,7 +74,7 @@ export default function Sidebar() {
           Dashboard
         </NavLink>
 
-        <NavLink to="/pages" className={({ isActive }) => linkClass(isActive)}>
+        <NavLink to="/collections/pages" className={({ isActive }) => linkClass(isActive)}>
           <File size={18} />
           Páginas
         </NavLink>
@@ -92,7 +99,7 @@ export default function Sidebar() {
                 <Palette size={16} />
                 Grupos de Campos
               </NavLink>
-              <NavLink to="/taxonomies" className={({ isActive }) => linkClass(isActive)}>
+              <NavLink to="/taxonomies" end className={({ isActive }) => linkClass(isActive)}>
                 <Tags size={16} />
                 Taxonomías
               </NavLink>
@@ -101,7 +108,8 @@ export default function Sidebar() {
         </div>
 
         {/* --- Colecciones dinámicas en menú --- */}
-        {collections.map((col) => {
+        {/* Las nativas (Páginas) ya tienen su acceso fijo arriba */}
+        {collections.filter((col) => !col.isNative).map((col) => {
           const colTaxonomies = taxonomies.filter((t) => t.collectionId === col.id);
           const isOpen = openCol === col.id;
 
@@ -119,7 +127,6 @@ export default function Sidebar() {
                 <div className="ml-6 pl-2 border-l border-white/10 space-y-0.5">
                   <NavLink
                     to={`/collections/${col.id}`}
-                    end
                     className={({ isActive }) => linkClass(isActive)}
                   >
                     <FileText size={15} />
@@ -164,6 +171,11 @@ export default function Sidebar() {
         <NavLink to="/ai" className={({ isActive }) => linkClass(isActive)}>
           <Sparkles size={18} />
           IA
+        </NavLink>
+
+        <NavLink to="/settings" className={({ isActive }) => linkClass(isActive)}>
+          <Settings size={18} />
+          Diseño del sitio
         </NavLink>
       </nav>
 

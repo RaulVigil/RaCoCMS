@@ -9,6 +9,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // @raco/blocks también importa React: una sola copia para que funcionen los hooks
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 5173,

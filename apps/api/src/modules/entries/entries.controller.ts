@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { EntriesService } from './entries.service';
 import { Entry } from './entry.entity';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,6 +15,12 @@ export class EntriesController {
     return this.service.findByCollection(collectionId, status);
   }
 
+  // Usado por el editor del panel (el slug puede cambiar, el id no)
+  @Get(':collectionId/id/:id')
+  findOne(@Param('collectionId') collectionId: string, @Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(collectionId, id);
+  }
+
   @Get(':collectionId/:slug')
   findBySlug(@Param('collectionId') collectionId: string, @Param('slug') slug: string) {
     return this.service.findBySlug(collectionId, slug);
@@ -28,13 +34,17 @@ export class EntriesController {
 
   @Put(':collectionId/:id')
   @Roles('admin', 'editor')
-  update(@Param('id') id: string, @Body() data: Partial<Entry>) {
-    return this.service.update(+id, data);
+  update(
+    @Param('collectionId') collectionId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: Partial<Entry>,
+  ) {
+    return this.service.update(collectionId, id, data);
   }
 
   @Delete(':collectionId/:id')
   @Roles('admin', 'editor')
-  remove(@Param('id') id: string) {
-    return this.service.remove(+id);
+  remove(@Param('collectionId') collectionId: string, @Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(collectionId, id);
   }
 }

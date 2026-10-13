@@ -8,7 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Collection } from '../collections/collection.entity';
-import type { EntryStatus, ISeoMetadata } from '@raco/shared';
+import type { EntryStatus, IPageBlock, ISeoMetadata } from '@raco/shared';
 
 @Entity('entries')
 export class Entry {
@@ -21,6 +21,9 @@ export class Entry {
   @ManyToOne(() => Collection, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'collectionId' })
   collection: Collection;
+
+  @Column({ default: '' })
+  title: string;
 
   @Column()
   slug: string;
@@ -36,6 +39,14 @@ export class Entry {
 
   @Column({ type: 'json' })
   seoData: ISeoMetadata;
+
+  // Términos asignados por taxonomía: { [taxonomyId]: termId[] }
+  @Column({ type: 'json', nullable: true })
+  terms: Record<string, string[]> | null;
+
+  // Diseño del constructor visual (árbol de bloques JSON, nunca HTML)
+  @Column({ type: 'json', nullable: true })
+  blocks: IPageBlock[] | null;
 
   @CreateDateColumn()
   createdAt: Date;
