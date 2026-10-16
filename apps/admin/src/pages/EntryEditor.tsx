@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Loader2, PencilRuler } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, Eye, Loader2, PencilRuler } from 'lucide-react';
 import type {
   EntryStatus,
   ICollection,
@@ -17,6 +17,7 @@ import { inputClass, widthClass } from '../components/fields/fieldTypes';
 import { statusLabels } from './Entries';
 import { depthClass, flattenTerms } from '../lib/terms';
 import { slugify } from '../lib/slug';
+import { previewUrl, publishPreview } from '../lib/previewChannel';
 
 // El constructor visual es pesado: se carga solo al abrirlo
 const PageBuilder = lazy(() => import('../components/builder/PageBuilder'));
@@ -191,6 +192,18 @@ export default function EntryEditor() {
           {isNew ? `Nueva ${noun}` : `Editar ${noun}`}
         </h1>
         <div className="flex items-center gap-3">
+          {!isNew && status === 'published' && slug && (
+            <a
+              href={`${__SITE_URL__}${collectionId === 'pages' ? '' : `/${collectionId}`}/${slug}`}
+              target="_blank"
+              rel="noopener"
+              title="Abrir la versión publicada en la web"
+              className="flex items-center gap-1.5 text-sm text-tertiary hover:text-primary"
+            >
+              <ExternalLink size={15} />
+              Ver en la web
+            </a>
+          )}
           {saved && (
             <span className="flex items-center gap-1 text-sm text-secondary">
               <Check size={15} />
@@ -293,13 +306,29 @@ export default function EntryEditor() {
                     : `${blocks.length} ${blocks.length === 1 ? 'sección' : 'secciones'}. Ábrelo para seguir editando.`}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setBuilderOpen(true)}
-                className="bg-primary text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                Abrir constructor visual
-              </button>
+              <div className="flex gap-2">
+                {blocks.length > 0 && (
+                  <button
+                    type="button"
+                    title="Ver la página como la verá el visitante"
+                    onClick={() => {
+                      publishPreview(`${collectionId}:${entryId}`, title, blocks);
+                      window.open(previewUrl(collectionId, entryId), 'raco-preview');
+                    }}
+                    className="flex items-center gap-1.5 border border-tertiary/30 text-primary px-4 py-2.5 rounded-md text-sm font-medium hover:bg-background transition-colors"
+                  >
+                    <Eye size={15} />
+                    Vista previa
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setBuilderOpen(true)}
+                  className="bg-primary text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  Abrir constructor visual
+                </button>
+              </div>
             </div>
           )}
 
@@ -448,6 +477,7 @@ export default function EntryEditor() {
         >
           <PageBuilder
             title={title}
+            preview={{ key: `${collectionId}:${entryId}`, url: previewUrl(collectionId, entryId) }}
             initialBlocks={blocks}
             onSave={(next) => handleSave(next)}
             onClose={(next) => {

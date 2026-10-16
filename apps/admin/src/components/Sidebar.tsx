@@ -175,7 +175,7 @@ export default function Sidebar() {
 
         <NavLink to="/settings" className={({ isActive }) => linkClass(isActive)}>
           <Settings size={18} />
-          Diseño del sitio
+          Ajustes del sitio
         </NavLink>
       </nav>
 

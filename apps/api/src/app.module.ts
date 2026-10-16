@@ -16,6 +16,7 @@ import { MediaModule } from './modules/media/media.module';
 import { TaxonomiesModule } from './modules/taxonomies/taxonomies.module';
 import { FieldGroupsModule } from './modules/field-groups/field-groups.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PublicModule } from './modules/public/public.module';
 import { EventBusService } from './common/event-bus.service';
 
 @Module({
@@ -37,6 +38,7 @@ import { EventBusService } from './common/event-bus.service';
     TaxonomiesModule,
     FieldGroupsModule,
     SettingsModule,
+    PublicModule,
   ],
   controllers: [AppController],
   providers: [AppService, EventBusService],

@@ -149,6 +149,14 @@ export interface ISiteDesign {
   fonts: { heading: string; body: string }; // familias de Google Fonts
 }
 
+// --- 5.2 Ajustes generales del sitio ---
+export interface ISiteGeneral {
+  siteName: string;
+  tagline: string; // descripción corta, se usa como meta description por defecto
+  homePageId: number | null; // entrada de "pages" que se muestra en "/"
+  language: string; // ej: "es", para <html lang>
+}
+
 // --- 6. SEO Metadata ---
 export interface ISeoMetadata {
   title: string;

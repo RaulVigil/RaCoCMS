@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createElement } from 'react';
+import { getCollections, getEntries, getEntry, getSite } from '../lib/api';
+import { entryElement, notFoundElement } from '../lib/content';
+import { renderPage } from '../lib/render';
+import ArchiveTemplate from '../templates/ArchiveTemplate';
+
+// Un solo segmento: o es el listado de una colección (/noticias) o una página (/contacto)
+const slug = Astro.params.slug!;
+const [site, collections] = await Promise.all([getSite(), getCollections()]);
+const archive = collections.find((c) => !c.isNative && c.id === slug);
+
+let title: string | undefined;
+let seo;
+let element;
+
+if (archive) {
+  const list = await getEntries(archive.id, Number(Astro.url.searchParams.get('page')) || 1);
+  title = archive.name;
+  element = list ? createElement(ArchiveTemplate, list) : notFoundElement();
+} else {
+  const ctx = await getEntry('pages', slug);
+  if (ctx && ctx.entry.id === site.general.homePageId) return Astro.redirect('/', 301);
+  if (ctx) {
+    title = ctx.entry.title;
+    seo = ctx.entry.seoData;
+    element = entryElement(ctx);
+  }
+}
+
+if (!element) {
+  Astro.response.status = 404;
+  title = 'Página no encontrada';
+  element = notFoundElement();
+}
+
+const page = await renderPage(element, site);
+---
+
+<Layout site={site} page={page} title={title} seo={seo} noIndex={Astro.response.status === 404} />

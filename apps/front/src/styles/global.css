@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+/* Clases fijas de los bloques; las dinámicas (valores propios, colores...) se generan por página en el servidor */
+@source '../../../../packages/blocks/src';
+
+/* Valores por defecto: la paleta real del sitio llega como variables en el <body> (Ajustes del sitio) */
+@theme {
+  --color-primary: #334155;
+  --color-secondary: #22d3ee;
+  --color-tertiary: #94a3b8;
+  --color-background: #f8fafc;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}

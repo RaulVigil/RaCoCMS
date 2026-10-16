@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createElement } from 'react';
+import { getHome, getSite } from '../lib/api';
+import { entryElement } from '../lib/content';
+import { renderPage } from '../lib/render';
+import Notice from '../templates/Notice';
+
+const [site, home] = await Promise.all([getSite(), getHome()]);
+
+const element = home
+  ? entryElement(home)
+  : createElement(Notice, {
+      title: 'Tu sitio está casi listo',
+      text: 'Elige una página de inicio en Ajustes del sitio y asegúrate de que esté publicada.',
+    });
+const page = await renderPage(element, site);
+// En la portada el título es el del sitio, salvo que la página tenga un título SEO propio
+---
+
+<Layout site={site} page={page} seo={home?.entry.seoData} noIndex={!home} />

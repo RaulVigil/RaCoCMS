@@ -1,0 +1,55 @@
+---
+import '../styles/global.css';
+import { googleFontsUrl } from '@raco/blocks';
+import type { ISeoMetadata } from '@raco/shared';
+import type { Site } from '../lib/api';
+import type { RenderedPage } from '../lib/render';
+import { SITE_URL } from '../lib/env';
+
+interface Props {
+  site: Site;
+  page: RenderedPage;
+  title?: string;
+  seo?: Partial<ISeoMetadata>;
+  noIndex?: boolean;
+}
+
+const { site, page, title, seo = {}, noIndex = false } = Astro.props;
+const { siteName, tagline, language } = site.general;
+
+// "Título SEO | Nombre del sitio"; en la portada sin título propio, solo el nombre
+const baseTitle = seo.title || title || '';
+const fullTitle = baseTitle && siteName ? `${baseTitle} | ${siteName}` : baseTitle || siteName || 'RaCo CMS';
+const description = seo.description || tagline || '';
+const canonical = `${SITE_URL}${Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/$/, '')}`;
+const ogImage = seo.openGraphImage ? new URL(seo.openGraphImage, SITE_URL).href : null;
+const robots = noIndex || seo.noIndex ? 'noindex, nofollow' : 'index, follow';
+---
+
+<!doctype html>
+<html lang={language}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="robots" content={robots} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={baseTitle || siteName} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    {siteName && <meta property="og:site_name" content={siteName} />}
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={googleFontsUrl(site.design)} />
+    <style is:inline set:html={page.css}></style>
+  </head>
+  <body class={page.bodyClass}>
+    <Fragment set:html={page.html} />
+  </body>
+</html>

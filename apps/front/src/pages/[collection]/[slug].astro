@@ -1,0 +1,24 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getEntry, getSite } from '../../lib/api';
+import { entryElement, notFoundElement } from '../../lib/content';
+import { renderPage } from '../../lib/render';
+
+const { collection, slug } = Astro.params as { collection: string; slug: string };
+
+// Las páginas viven en la raíz: /pages/contacto → /contacto
+if (collection === 'pages') return Astro.redirect(`/${slug}`, 301);
+
+const [site, ctx] = await Promise.all([getSite(), getEntry(collection, slug)]);
+if (!ctx) Astro.response.status = 404;
+
+const page = await renderPage(ctx ? entryElement(ctx) : notFoundElement(), site);
+---
+
+<Layout
+  site={site}
+  page={page}
+  title={ctx?.entry.title ?? 'Página no encontrada'}
+  seo={ctx?.entry.seoData}
+  noIndex={!ctx}
+/>

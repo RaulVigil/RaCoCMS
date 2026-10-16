@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { ISiteDesign } from '@raco/shared';
+import type { ISiteDesign, ISiteGeneral } from '@raco/shared';
 import { Setting } from './setting.entity';
 
 const HEX = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -18,6 +18,16 @@ const validators: Record<string, (value: unknown) => unknown> = {
       .map((c) => ({ id: c.id, name: String(c.name ?? '').slice(0, 40), value: c.value.toLowerCase() }));
     if (!FONT.test(d.fonts.heading) || !FONT.test(d.fonts.body)) throw new BadRequestException('Fuente inválida');
     return { colors, fonts: { heading: d.fonts.heading, body: d.fonts.body } };
+  },
+  general: (value) => {
+    const g = (value ?? {}) as Partial<ISiteGeneral>;
+    const homePageId = Number(g.homePageId);
+    return {
+      siteName: String(g.siteName ?? '').trim().slice(0, 80),
+      tagline: String(g.tagline ?? '').trim().slice(0, 200),
+      homePageId: Number.isInteger(homePageId) && homePageId > 0 ? homePageId : null,
+      language: /^[a-z]{2}(-[A-Z]{2})?$/.test(String(g.language)) ? g.language : 'es',
+    };
   },
 };
 

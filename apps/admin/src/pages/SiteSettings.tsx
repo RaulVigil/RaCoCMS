@@ -15,6 +15,7 @@ import {
 import { loadSiteDesign, saveSiteDesign, useGoogleFonts } from '../lib/siteDesign';
 import { useRuntimeTailwind } from '../lib/tailwindRuntime';
 import { inputClass } from '../components/fields/fieldTypes';
+import GeneralSettings from '../components/GeneralSettings';
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
@@ -80,10 +81,10 @@ export default function SiteSettings() {
     <div ref={pageRef}>
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">Diseño del sitio</h1>
+          <h1 className="font-heading text-2xl font-bold text-primary">Ajustes del sitio</h1>
           <p className="text-sm text-tertiary mt-1">
-            Colores y fuentes globales. Todo lo que diseñes con el constructor los usa: si cambias el color principal aquí,
-            cambia en todas las páginas.
+            Datos generales, colores y fuentes. Todo lo que diseñes con el constructor usa esta paleta: si cambias el color
+            principal aquí, cambia en todas las páginas.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -102,7 +103,7 @@ export default function SiteSettings() {
             className="flex items-center gap-2 bg-secondary text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50"
           >
             {saving && <Loader2 size={15} className="animate-spin" />}
-            Guardar
+            Guardar diseño
           </button>
         </div>
       </div>
@@ -113,6 +114,8 @@ export default function SiteSettings() {
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
         <div className="xl:col-span-3 space-y-6">
+          <GeneralSettings />
+
           {/* --- Colores --- */}
           <div className="bg-white rounded-xl border border-tertiary/20 p-6">
             <h2 className="font-heading text-base font-semibold text-primary">Paleta de colores</h2>

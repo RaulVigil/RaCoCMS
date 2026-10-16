@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ISiteDesign } from '@raco/shared';
-import { Check, Loader2, Monitor, Redo2, Smartphone, Tablet, Undo2, X } from 'lucide-react';
+import { Check, Eye, Loader2, Monitor, Redo2, Smartphone, Tablet, Undo2, X } from 'lucide-react';
 import type { IPageBlock } from '@raco/shared';
 import {
   createBlock,
@@ -27,9 +27,11 @@ import SettingsPanel from './SettingsPanel';
 import { metaOf } from './meta';
 import { useGoogleFonts, useSiteDesign } from '../../lib/siteDesign';
 import { useRuntimeTailwind } from '../../lib/tailwindRuntime';
+import { publishPreview } from '../../lib/previewChannel';
 
 interface Props {
   title: string;
+  preview?: { key: string; url: string }; // a dónde publicar la vista previa en vivo
   initialBlocks: IPageBlock[];
   onSave: (blocks: IPageBlock[]) => Promise<boolean>;
   onClose: (blocks: IPageBlock[]) => void;
@@ -63,7 +65,7 @@ export default function PageBuilder(props: Props) {
   return <Builder {...props} design={design} />;
 }
 
-function Builder({ title, initialBlocks, onSave, onClose, design }: Props & { design: ISiteDesign }) {
+function Builder({ title, preview, initialBlocks, onSave, onClose, design }: Props & { design: ISiteDesign }) {
   const [history, setHistory] = useState<History>(() => ({ past: [], present: sortByOrder(initialBlocks), future: [] }));
   const blocks = history.present;
   const [savedBlocks, setSavedBlocks] = useState(blocks);
@@ -234,6 +236,19 @@ function Builder({ title, initialBlocks, onSave, onClose, design }: Props & { de
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // Vista previa en vivo: cada cambio se publica (con una pequeña espera para no saturar mientras se escribe)
+  useEffect(() => {
+    if (!preview) return;
+    const t = setTimeout(() => publishPreview(preview.key, title, normalizeOrder(blocks)), 250);
+    return () => clearTimeout(t);
+  }, [blocks, title, preview?.key]);
+
+  function openPreview() {
+    if (!preview) return;
+    publishPreview(preview.key, title, normalizeOrder(blocks));
+    window.open(preview.url, 'raco-preview');
+  }
+
   // Avisar si se cierra la pestaña con cambios sin guardar
   useEffect(() => {
     if (!dirty) return;
@@ -332,6 +347,17 @@ function Builder({ title, initialBlocks, onSave, onClose, design }: Props & { de
             </button>
           </div>
 
+          {preview && (
+            <button
+              type="button"
+              title="Abrir la página en otra pestaña; se actualiza en vivo mientras editas"
+              onClick={openPreview}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-white/80 hover:bg-white/10 hover:text-white"
+            >
+              <Eye size={15} />
+              <span className="hidden lg:inline">Vista previa</span>
+            </button>
+          )}
           {dirty ? (
             <span className="hidden text-xs text-amber-300 md:inline">Cambios sin guardar</span>
           ) : (

@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getSite } from '../lib/api';
+import { notFoundElement } from '../lib/content';
+import { renderPage } from '../lib/render';
+
+const site = await getSite();
+const page = await renderPage(notFoundElement(), site);
+---
+
+<Layout site={site} page={page} title="Página no encontrada" noIndex />

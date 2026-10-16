@@ -21,6 +21,8 @@ import Ai from './pages/Ai';
 const EntryEditor = lazy(() => import('./pages/EntryEditor'));
 // Usa el compilador de Tailwind en vivo para la vista previa
 const SiteSettings = lazy(() => import('./pages/SiteSettings'));
+// Página a pantalla completa, fuera del layout del panel
+const Preview = lazy(() => import('./pages/Preview'));
 
 const loading = <p className="text-sm text-tertiary">Cargando...</p>;
 
@@ -29,6 +31,16 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/preview/:collectionId/:entryId"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={loading}>
+                <Preview />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={

@@ -5,10 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
     "type-check": "astro check",
     "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@astrojs/node": "11.1.7",
+    "@raco/blocks": "workspace:*",
+    "@raco/shared": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "7.3.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7"
   }
 }
