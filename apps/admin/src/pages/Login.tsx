@@ -16,8 +16,9 @@ export default function Login() {
     setError('');
     try {
       await login(email, password);
-    } catch {
-      setError('Credenciales incorrectas');
+    } catch (err) {
+      // La API ya responde "Credenciales incorrectas"; cualquier otro mensaje es que no hubo conexión
+      setError((err as Error).message || 'Credenciales incorrectas');
     }
   }
 

@@ -200,6 +200,76 @@ export interface IMediaUsage {
   collectionId?: string;
 }
 
+// --- 3.15 Páginas generadas con IA ---
+// La IA no devuelve bloques sino esta "receta" compacta: la API la valida y el admin la
+// convierte en bloques reales del constructor (specToBlocks), editables como cualquier otro
+export type AiModuleType =
+  | 'heading'
+  | 'text'
+  | 'button'
+  | 'list'
+  | 'card'
+  | 'icon'
+  | 'counter'
+  | 'testimonial'
+  | 'accordion'
+  | 'tabs'
+  | 'image'
+  | 'map'
+  | 'spacer'
+  | 'divider';
+
+export interface IAiModuleSpec {
+  type: AiModuleType;
+  text?: string; // título, párrafos (separados por línea en blanco), texto del botón, cita o descripción
+  level?: number; // títulos: 1-4
+  url?: string;
+  variant?: 'primary' | 'secondary' | 'outline' | 'link';
+  items?: string[]; // lista
+  entries?: { title: string; text: string }[]; // acordeón y pestañas
+  icon?: string;
+  title?: string;
+  number?: string;
+  prefix?: string;
+  suffix?: string;
+  label?: string;
+  name?: string;
+  role?: string;
+  rating?: number;
+  src?: string; // solo imágenes de la biblioteca; vacío = el usuario la elige después
+  alt?: string;
+  address?: string;
+}
+
+export interface IAiRowSpec {
+  layout: string; // id de un diseño de fila ('1', '1-1', '1-1-1', '5-7'...)
+  align: 'left' | 'center';
+  columnStyle: 'plain' | 'card';
+  mobile: 'stack' | 'slider';
+  columns: { modules: IAiModuleSpec[] }[];
+}
+
+export interface IAiSectionSpec {
+  background: 'none' | 'white' | 'light' | 'primary' | 'secondary' | 'dark';
+  image: string; // imagen de fondo (de la biblioteca) o vacío
+  height: 'auto' | 'half' | 'screen';
+  width: 'narrow' | 'normal' | 'wide';
+  anchor: string; // para enlaces del tipo #contacto
+  rows: IAiRowSpec[];
+}
+
+export interface IAiPageSpec {
+  title: string;
+  description: string; // meta descripción sugerida
+  sections: IAiSectionSpec[];
+}
+
+export interface IAiPageRequest {
+  prompt: string;
+  scope?: 'page' | 'sections'; // página completa o solo las secciones que se piden
+  pageTitle?: string;
+}
+
 // --- 6. SEO Metadata ---
 export interface ISeoMetadata {
   title: string;

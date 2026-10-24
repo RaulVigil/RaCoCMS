@@ -13,7 +13,6 @@ import Taxonomies from './pages/Taxonomies';
 import TaxonomyTerms from './pages/TaxonomyTerms';
 import Menus from './pages/Menus';
 import Media from './pages/Media';
-import Ai from './pages/Ai';
 
 // El editor arrastra Tiptap, se carga solo cuando se abre una entrada
 const EntryEditor = lazy(() => import('./pages/EntryEditor'));
@@ -24,6 +23,8 @@ const Preview = lazy(() => import('./pages/Preview'));
 // Vista previa real del header/footer (compilador de Tailwind en vivo)
 const GlobalParts = lazy(() => import('./pages/GlobalParts'));
 const Templates = lazy(() => import('./pages/Templates'));
+// Convierte la receta de la IA con @raco/blocks
+const Ai = lazy(() => import('./pages/Ai'));
 
 const loading = <p className="text-sm text-tertiary">Cargando...</p>;
 
@@ -84,7 +85,14 @@ export default function App() {
           />
           <Route path="menus" element={<Menus />} />
           <Route path="media" element={<Media />} />
-          <Route path="ai" element={<Ai />} />
+          <Route
+            path="ai"
+            element={
+              <Suspense fallback={loading}>
+                <Ai />
+              </Suspense>
+            }
+          />
           <Route
             path="settings"
             element={

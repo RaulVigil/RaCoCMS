@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { IMenu, ISiteDesign } from '@raco/shared';
-import { Check, Eye, Loader2, Monitor, Redo2, Smartphone, Tablet, Undo2, X } from 'lucide-react';
+import { Check, Eye, Loader2, Monitor, Redo2, Smartphone, Sparkles, Tablet, Undo2, X } from 'lucide-react';
 import type { IPageBlock } from '@raco/shared';
 import {
   createBlock,
@@ -30,6 +30,7 @@ import { useRuntimeTailwind } from '../../lib/tailwindRuntime';
 import { publishPreview } from '../../lib/previewChannel';
 import { useMenus } from '../../lib/menus';
 import { useBuilderData, type TemplateTarget } from './builderData';
+import AiDialog, { type AiMode } from './AiDialog';
 
 interface Props {
   title: string;
@@ -91,6 +92,7 @@ function Builder({
   const [adding, setAdding] = useState<AddRequest | null>(null);
   const [drag, setDrag] = useState<BuilderApi['drag']>(null);
   const [dropTarget, setDropTargetState] = useState<DropTarget | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const lastChange = useRef<{ key: string; at: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const data = useBuilderData(history.present, template);
@@ -204,6 +206,14 @@ function Builder({
     change((b) => insertBlock(b, adding.parentId, adding.index, block));
     setAdding(null);
     setSelectedId(block.id);
+  }
+
+  // Lo que arma la IA entra como un cambio más: Ctrl+Z lo deshace entero
+  function applyAi(generated: IPageBlock[], mode: AiMode) {
+    change((b) => normalizeOrder(mode === 'replace' ? generated : [...b, ...generated]));
+    setAiOpen(false);
+    setAdding(null);
+    setSelectedId(mode === 'append' ? (generated[0]?.id ?? null) : null);
   }
 
   // --- Guardar / cerrar ---
@@ -384,6 +394,17 @@ function Builder({
             </button>
           </div>
 
+          {!template && (
+            <button
+              type="button"
+              title="Generar la página o nuevas secciones con IA"
+              onClick={() => setAiOpen(true)}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-violet-200 hover:bg-white/10 hover:text-white"
+            >
+              <Sparkles size={15} />
+              <span className="hidden lg:inline">IA</span>
+            </button>
+          )}
           {preview && (
             <button
               type="button"
@@ -434,11 +455,18 @@ function Builder({
                 onClose={() => setSelectedId(null)}
               />
             ) : (
-              <Layers blocks={blocks} onSelect={setSelectedId} onHover={setHoveredId} hoveredId={hoveredId} />
+              <Layers
+                blocks={blocks}
+                onSelect={setSelectedId}
+                onHover={setHoveredId}
+                hoveredId={hoveredId}
+                onAi={template ? undefined : () => setAiOpen(true)}
+              />
             )}
           </aside>
         </div>
       </div>
+      {aiOpen && <AiDialog title={title} hasContent={blocks.length > 0} onClose={() => setAiOpen(false)} onResult={applyAi} />}
     </BuilderContext.Provider>
   );
 }
@@ -470,11 +498,13 @@ function Layers({
   onSelect,
   onHover,
   hoveredId,
+  onAi,
 }: {
   blocks: IPageBlock[];
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
   hoveredId: string | null;
+  onAi?: () => void;
 }) {
   const rows: { block: IPageBlock; depth: number }[] = [];
   const walk = (list: IPageBlock[], depth: number) =>
@@ -494,6 +524,18 @@ function Layers({
             Empieza con <span className="font-medium text-sky-600">Añadir sección</span>, elige cómo repartir las columnas
             y después añade módulos: títulos, textos, imágenes, botones…
           </p>
+          {onAi && (
+            <>
+              <p>O cuéntale a la IA qué necesitas y te arma un primer diseño para ajustar:</p>
+              <button
+                type="button"
+                onClick={onAi}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-violet-600 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                <Sparkles size={15} /> Generar con IA
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <>

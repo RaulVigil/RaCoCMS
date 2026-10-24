@@ -6,6 +6,7 @@ export * from './design';
 export * from './dynamic';
 export * from './tree';
 export * from './layouts';
+export * from './ai';
 export * from './base';
 export * from './components';
 export * from './modules';

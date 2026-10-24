@@ -19,7 +19,8 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Error de red' }));
+    // Sin JSON en la respuesta: la API está apagada (el proxy de Vite responde 500 vacío) o no se alcanzó
+    const err = await res.json().catch(() => ({ message: 'No se pudo conectar con el servidor. Revisa que la API esté encendida.' }));
     throw new Error(err.message || `Error ${res.status}`);
   }
 

@@ -211,7 +211,8 @@ export function Image({ block, visible, attrs }: BlockComponentProps) {
   const p = propsOf(block, 'image');
   const s = styleClasses(block);
   const editor = useIsEditor();
-  if (!p.src) return editor ? <Placeholder label="Imagen: súbela en el panel de ajustes" /> : null;
+  // Si la armó la IA, el texto alternativo dice qué imagen conviene poner
+  if (!p.src) return editor ? <Placeholder label={p.alt ? `Imagen sugerida: ${p.alt}` : 'Imagen: súbela en el panel de ajustes'} /> : null;
   const visual = cx(
     'h-auto',
     !s.has('width') && 'w-full',

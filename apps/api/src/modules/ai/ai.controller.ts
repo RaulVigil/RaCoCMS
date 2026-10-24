@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import type { IAiPageRequest } from '@raco/shared';
 import { AiService, type FieldAction } from './ai.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -16,9 +17,10 @@ export class AiController {
     return this.aiService.fieldAction(body);
   }
 
-  @Post('generate-site')
-  generateSite(@Body('prompt') prompt: string) {
-    return this.aiService.generateSite(prompt);
+  // Arma una página (o secciones) a partir de una descripción: devuelve la receta ya validada
+  @Post('generate-page')
+  generatePage(@Body() body: IAiPageRequest) {
+    return this.aiService.generatePage(body);
   }
 
   @Post('parse-figma')

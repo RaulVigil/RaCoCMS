@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, ExternalLink, Eye, Loader2, PencilRuler } from 'lucide-react';
 import type {
   EntryStatus,
@@ -46,6 +46,7 @@ export default function EntryEditor() {
   const { collectionId = 'pages', entryId = 'new' } = useParams();
   const isNew = entryId === 'new';
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [collection, setCollection] = useState<ICollection | null>(null);
   const [groups, setGroups] = useState<IFieldGroup[]>([]);
@@ -103,7 +104,10 @@ export default function EntryEditor() {
         setTerms(entry?.terms ?? {});
         setSeo({ ...emptySeo, ...entry?.seoData });
         setBlocks(entry?.blocks ?? []);
-        setBuilderOpen(false);
+        // Recién creada con IA: se abre directo en el constructor (una vez; al recargar ya no)
+        const openBuilder = !!(location.state as { openBuilder?: boolean } | null)?.openBuilder;
+        setBuilderOpen(openBuilder && !!col.useBuilder);
+        if (openBuilder) navigate(location.pathname, { replace: true, state: null });
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
