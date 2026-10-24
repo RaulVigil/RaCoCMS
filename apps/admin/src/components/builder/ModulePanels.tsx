@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ImagePlus, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ImagePlus, Images, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import MediaPicker from '../media/MediaPicker';
 import type { IPageBlock } from '@raco/shared';
 import { ICONS, clamp, cx, iconByName, type ContentItem, type Device, type RichDoc } from '@raco/blocks';
 import type { JSONContent } from '@tiptap/react';
@@ -18,6 +19,8 @@ import {
   smallInput,
 } from './controls';
 import { useBuilder } from './context';
+import { AiAction, AiMenu } from '../AiMenu';
+import { aiField } from '../../lib/ai';
 
 // Paneles de Contenido y Diseño de los módulos de contenido (icono, tarjeta, acordeón...)
 
@@ -37,7 +40,68 @@ const sizeOptions = [
 ];
 
 export function ModuleContent({ block, p, set }: PanelProps) {
+  const { menus, collections } = useBuilder();
   switch (block.type) {
+    case 'posts':
+      return (
+        <>
+          <Field
+            label="Qué entradas mostrar"
+            hint={
+              p.source === 'current'
+                ? 'Para la plantilla de listado: muestra las entradas de la página actual, con paginación.'
+                : 'Las más recientes publicadas de esa colección.'
+            }
+          >
+            <select value={String(p.source)} onChange={(e) => set({ source: e.target.value })} className={smallInput}>
+              <option value="current">Las del listado actual (plantilla de listado)</option>
+              {collections
+                .filter((c) => !c.isNative)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Últimas de {c.name}
+                  </option>
+                ))}
+            </select>
+          </Field>
+          {p.source !== 'current' && (
+            <Field label="Cantidad">
+              <input
+                type="number"
+                min={1}
+                max={48}
+                value={Number(p.limit)}
+                onChange={(e) => set({ limit: clamp(Number(e.target.value), 1, 48) }, 'limit')}
+                className={`${smallInput} w-24`}
+              />
+            </Field>
+          )}
+          <Toggle label="Mostrar imagen" checked={!!p.showImage} onChange={(showImage) => set({ showImage })} />
+          <Toggle label="Mostrar fecha" checked={!!p.showDate} onChange={(showDate) => set({ showDate })} />
+          <Toggle label="Mostrar extracto" checked={!!p.showExcerpt} onChange={(showExcerpt) => set({ showExcerpt })} />
+          {p.source === 'current' && (
+            <Toggle label="Paginación" checked={!!p.pagination} onChange={(pagination) => set({ pagination })} />
+          )}
+        </>
+      );
+
+    case 'menu':
+      return (
+        <Field label="Menú a mostrar" hint="Los enlaces se editan en la sección Menús del panel; los cambios se ven al volver aquí.">
+          <select value={String(p.menuId)} onChange={(e) => set({ menuId: e.target.value })} className={smallInput}>
+            {!menus.some((m) => m.id === p.menuId) && <option value={String(p.menuId)}>(menú no encontrado)</option>}
+            {menus.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <a href="/menus" target="_blank" rel="noopener" className="mt-1.5 inline-block text-xs text-secondary hover:underline">
+            Editar menús →
+          </a>
+        </Field>
+      );
+
     case 'icon':
       return (
         <>
@@ -64,10 +128,10 @@ export function ModuleContent({ block, p, set }: PanelProps) {
           </Field>
           {p.media === 'icon' && <IconPicker value={String(p.icon)} onChange={(icon) => set({ icon })} />}
           {p.media === 'image' && <ImagePicker value={String(p.image ?? '')} onChange={(image) => set({ image })} />}
-          <Field label="Título">
+          <Field label="Título" action={<AiMenu text={String(p.title ?? '')} onResult={(title) => set({ title })} />}>
             <input value={String(p.title)} onChange={(e) => set({ title: e.target.value }, 'title')} className={smallInput} />
           </Field>
-          <Field label="Texto">
+          <Field label="Texto" action={<AiMenu text={String(p.text ?? '')} onResult={(text) => set({ text })} />}>
             <textarea rows={3} value={String(p.text)} onChange={(e) => set({ text: e.target.value }, 'text')} className={smallInput} />
           </Field>
           <Field label="Enlace (opcional)" hint="Deja el texto vacío si la tarjeta no lleva enlace.">
@@ -134,7 +198,7 @@ export function ModuleContent({ block, p, set }: PanelProps) {
     case 'testimonial':
       return (
         <>
-          <Field label="Testimonio">
+          <Field label="Testimonio" action={<AiMenu text={String(p.quote ?? '')} onResult={(quote) => set({ quote })} />}>
             <textarea rows={4} value={String(p.quote)} onChange={(e) => set({ quote: e.target.value }, 'quote')} className={smallInput} />
           </Field>
           <Field label="Nombre">
@@ -186,6 +250,81 @@ export function ModuleDesign({ block, p, set, device, setDevice }: PanelProps) {
   const bgOptions = bgOptionsFor(design);
 
   switch (block.type) {
+    case 'posts': {
+      const columns = p.columns as Record<Device, number>;
+      return (
+        <>
+          <ResponsiveField label="Columnas" device={device} setDevice={setDevice}>
+            <Segmented
+              value={columns[device]}
+              options={[1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }))}
+              onChange={(n) => set({ columns: { ...columns, [device]: n } })}
+            />
+          </ResponsiveField>
+          <Field label="Estilo">
+            <Segmented
+              value={String(p.variant)}
+              options={[
+                { value: 'plain', label: 'Simple' },
+                { value: 'card', label: 'Tarjeta' },
+              ]}
+              onChange={(variant) => set({ variant })}
+            />
+          </Field>
+          <Field label="Proporción de la imagen">
+            <Segmented
+              value={String(p.imageAspect)}
+              options={[
+                { value: 'video', label: '16:9' },
+                { value: 'square', label: '1:1' },
+                { value: 'portrait', label: '3:4' },
+              ]}
+              onChange={(imageAspect) => set({ imageAspect })}
+            />
+          </Field>
+        </>
+      );
+    }
+    case 'menu':
+      return (
+        <>
+          <Field label="Disposición">
+            <Segmented
+              value={String(p.layout)}
+              options={[
+                { value: 'horizontal', label: 'Horizontal' },
+                { value: 'vertical', label: 'Vertical' },
+              ]}
+              onChange={(layout) => set({ layout })}
+            />
+          </Field>
+          <Field label="Alineación">
+            <Segmented value={String(p.align)} options={alignOptions} onChange={(align) => set({ align })} />
+          </Field>
+          <Field label="Espacio entre enlaces">
+            <Segmented
+              value={String(p.gap)}
+              options={[
+                { value: 'sm', label: 'S' },
+                { value: 'md', label: 'M' },
+                { value: 'lg', label: 'L' },
+              ]}
+              onChange={(gap) => set({ gap })}
+            />
+          </Field>
+          <Field label="En móvil" hint="El botón ☰ abre el menú en un panel desplegable, sin JavaScript.">
+            <Segmented
+              value={String(p.mobile)}
+              options={[
+                { value: 'hamburger', label: 'Botón ☰' },
+                { value: 'list', label: 'Lista visible' },
+              ]}
+              onChange={(mobile) => set({ mobile })}
+            />
+          </Field>
+        </>
+      );
+
     case 'icon':
       return (
         <>
@@ -552,6 +691,7 @@ function GalleryEditor({
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
+  const [library, setLibrary] = useState(false);
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -562,7 +702,7 @@ function GalleryEditor({
     for (const file of Array.from(files)) {
       try {
         const res = await uploadFile(file);
-        added.push({ src: res.url, alt: '' });
+        added.push({ src: res.url, alt: res.alt ?? '' });
       } catch (err) {
         setError((err as Error).message);
       }
@@ -603,7 +743,17 @@ function GalleryEditor({
 
       {editing !== null && images[editing] && (
         <div className="space-y-2 rounded-lg border border-tertiary/20 p-2.5">
-          <Field label="Descripción de la imagen" hint="La leen los buscadores y los lectores de pantalla.">
+          <Field
+            label="Descripción de la imagen"
+            hint="La leen los buscadores y los lectores de pantalla."
+            action={
+              <AiAction
+                label="Describir"
+                run={() => aiField({ action: 'alt-text', imageUrl: images[editing].src })}
+                onResult={(alt) => onChange(images.map((img, j) => (j === editing ? { ...img, alt } : img)))}
+              />
+            }
+          >
             <input
               value={images[editing].alt}
               onChange={(e) =>
@@ -645,8 +795,25 @@ function GalleryEditor({
         {uploading > 0 ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
         {uploading > 0 ? `Subiendo ${uploading}…` : 'Subir imágenes (puedes elegir varias)'}
       </button>
+      <button
+        type="button"
+        onClick={() => setLibrary(true)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-tertiary/30 py-1.5 text-xs text-primary hover:bg-background"
+      >
+        <Images size={14} /> Elegir de la biblioteca (varias)
+      </button>
       <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
       {error && <p className="text-xs text-red-500">{error}</p>}
+      {library && (
+        <MediaPicker
+          multiple
+          onClose={() => setLibrary(false)}
+          onSelect={(picked) => {
+            setLibrary(false);
+            onChange([...images, ...picked.map((m) => ({ src: m.url, alt: m.alt }))]);
+          }}
+        />
+      )}
     </div>
   );
 }

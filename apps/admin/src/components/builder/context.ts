@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
-import type { IPageBlock, ISiteDesign } from '@raco/shared';
-import type { Device } from '@raco/blocks';
+import type { ICollection, IFieldDefinition, IMenu, IPageBlock, ISiteDesign } from '@raco/shared';
+import type { ArchiveData, Device, EntryData, PostItem } from '@raco/blocks';
 
 export type AddKind = 'section' | 'row' | 'module';
 
@@ -21,6 +21,12 @@ export interface DropTarget {
 export interface BuilderApi {
   blocks: IPageBlock[];
   design: ISiteDesign; // paleta y fuentes globales del sitio
+  menus: IMenu[]; // para el módulo Menú
+  collections: ICollection[]; // fuentes del módulo "Listado de entradas"
+  dynamicFields: IFieldDefinition[] | null; // campos vinculables; null = no es una plantilla
+  entryData: EntryData | null; // entrada de muestra de la plantilla
+  archiveData: ArchiveData | null;
+  posts: Record<string, PostItem[]>;
   device: Device;
   selectedId: string | null;
   hoveredId: string | null;

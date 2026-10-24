@@ -1,5 +1,5 @@
 import type { EntryList } from '../lib/api';
-import { entryUrl } from '../lib/urls';
+import { entryUrl } from '@raco/blocks';
 import { excerptOf, formatDate, imageOf } from './format';
 
 // Listado de una colección (ej. /noticias) con paginación

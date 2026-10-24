@@ -18,6 +18,11 @@ import { statusLabels } from './Entries';
 import { depthClass, flattenTerms } from '../lib/terms';
 import { slugify } from '../lib/slug';
 import { previewUrl, publishPreview } from '../lib/previewChannel';
+import RevisionHistory from '../components/RevisionHistory';
+import MediaPicker from '../components/media/MediaPicker';
+import { fromLocalInput, longDate, toLocalInput } from '../lib/dates';
+import { AiAction } from '../components/AiMenu';
+import { aiField, entryText } from '../lib/ai';
 
 // El constructor visual es pesado: se carga solo al abrirlo
 const PageBuilder = lazy(() => import('../components/builder/PageBuilder'));
@@ -50,9 +55,13 @@ export default function EntryEditor() {
   const [slug, setSlug] = useState(''); // vacío = se genera a partir del título
   const [editingSlug, setEditingSlug] = useState(false);
   const [status, setStatus] = useState<EntryStatus>('draft');
+  // Programación en hora local (lo que muestra el input); se convierte a ISO al guardar
+  const [publishAt, setPublishAt] = useState('');
+  const [unpublishAt, setUnpublishAt] = useState('');
   const [data, setData] = useState<Record<string, unknown>>({});
   const [terms, setTerms] = useState<Record<string, string[]>>({});
   const [seo, setSeo] = useState<ISeoMetadata>(emptySeo);
+  const [ogPicker, setOgPicker] = useState(false);
   const [blocks, setBlocks] = useState<IPageBlock[]>([]);
   const [builderOpen, setBuilderOpen] = useState(false);
   // Al crear una entrada se navega a su id: no hay que recargarla (y cerraría el constructor)
@@ -88,6 +97,8 @@ export default function EntryEditor() {
         setSlug(entry?.slug ?? '');
         setEditingSlug(false);
         setStatus(entry?.status ?? 'draft');
+        setPublishAt(toLocalInput(entry?.publishAt));
+        setUnpublishAt(toLocalInput(entry?.unpublishAt));
         setData(entry ? entry.data : defaultsFor(fieldGroups));
         setTerms(entry?.terms ?? {});
         setSeo({ ...emptySeo, ...entry?.seoData });
@@ -126,6 +137,9 @@ export default function EntryEditor() {
     return Object.keys(errors).length === 0;
   }
 
+  // Lo que la IA lee para escribir el SEO: campos y textos del diseño
+  const seoContext = () => entryText(data, groups.flatMap((g) => g.fields), blocks);
+
   // Devuelve si se guardó, para que el constructor sepa si marcar sus cambios como guardados
   async function handleSave(nextBlocks: IPageBlock[] = blocks): Promise<boolean> {
     if (!validate()) {
@@ -143,16 +157,21 @@ export default function EntryEditor() {
       terms,
       seoData: seo,
       blocks: nextBlocks,
+      publishAt: status === 'published' ? null : fromLocalInput(publishAt),
+      unpublishAt: fromLocalInput(unpublishAt),
     };
     try {
       if (isNew) {
         const created = await api.post<IEntry>(`/entries/${collectionId}`, payload);
         setSlug(created.slug);
+        setPublishAt(toLocalInput(created.publishAt));
         skipReload.current = String(created.id);
         navigate(`/collections/${collectionId}/${created.id}`, { replace: true });
       } else {
         const updated = await api.put<IEntry>(`/entries/${collectionId}/${entryId}`, payload);
         setSlug(updated.slug); // el backend puede haberlo normalizado o desduplicado
+        setPublishAt(toLocalInput(updated.publishAt));
+        setUnpublishAt(toLocalInput(updated.unpublishAt));
       }
       setBlocks(nextBlocks);
       setSaved(true);
@@ -216,7 +235,7 @@ export default function EntryEditor() {
             className="flex items-center gap-2 bg-secondary text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-secondary/90 transition-colors disabled:opacity-60"
           >
             {saving && <Loader2 size={15} className="animate-spin" />}
-            {isNew ? 'Crear' : 'Guardar'}
+            {status !== 'published' && publishAt ? 'Programar' : isNew ? 'Crear' : 'Guardar'}
           </button>
         </div>
       </div>
@@ -380,7 +399,51 @@ export default function EntryEditor() {
                 </option>
               ))}
             </select>
+
+            {/* Programación: publicar y/o despublicar solo a una fecha y hora */}
+            <div className="mt-4 space-y-3 border-t border-tertiary/15 pt-4">
+              {status !== 'published' && (
+                <ScheduleField
+                  label="Publicar automáticamente"
+                  value={publishAt}
+                  onChange={(v) => {
+                    setPublishAt(v);
+                    setSaved(false);
+                  }}
+                  verb="Se publicará"
+                />
+              )}
+              <ScheduleField
+                label="Despublicar automáticamente"
+                value={unpublishAt}
+                onChange={(v) => {
+                  setUnpublishAt(v);
+                  setSaved(false);
+                }}
+                verb="Dejará de verse"
+              />
+            </div>
           </div>
+
+          {!isNew && (
+            <RevisionHistory
+              collectionId={collectionId}
+              entryId={entryId}
+              current={{ title, slug, status, data, terms, seoData: seo, blocks }}
+              fieldLabels={Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.key, f.label]))}
+              onRestored={(entry) => {
+                // El editor pasa a mostrar la versión restaurada (ya guardada)
+                setTitle(entry.title);
+                setSlug(entry.slug);
+                setStatus(entry.status);
+                setData(entry.data ?? {});
+                setTerms(entry.terms ?? {});
+                setSeo({ ...emptySeo, ...entry.seoData });
+                setBlocks(entry.blocks ?? []);
+                setSaved(true);
+              }}
+            />
+          )}
 
           {taxonomies.map((tax) => (
             <div key={tax.id} className="bg-white rounded-xl border border-tertiary/20 p-5">
@@ -416,7 +479,19 @@ export default function EntryEditor() {
           <div className="bg-white rounded-xl border border-tertiary/20 p-5 space-y-3">
             <h2 className="font-heading text-sm font-semibold text-primary">SEO</h2>
             <div>
-              <label className="block text-xs text-tertiary mb-1">Meta título</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs text-tertiary">Meta título</label>
+                <AiAction
+                  label="Generar"
+                  disabled={!title.trim()}
+                  disabledHint="Escribe el título primero"
+                  run={() => aiField({ action: 'seo-title', title, context: seoContext() })}
+                  onResult={(text) => {
+                    setSeo((s) => ({ ...s, title: text }));
+                    setSaved(false);
+                  }}
+                />
+              </div>
               <input
                 value={seo.title}
                 onChange={(e) => {
@@ -428,7 +503,19 @@ export default function EntryEditor() {
               />
             </div>
             <div>
-              <label className="block text-xs text-tertiary mb-1">Meta descripción</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs text-tertiary">Meta descripción</label>
+                <AiAction
+                  label="Generar"
+                  disabled={!title.trim()}
+                  disabledHint="Escribe el título primero"
+                  run={() => aiField({ action: 'seo-description', title, context: seoContext() })}
+                  onResult={(text) => {
+                    setSeo((s) => ({ ...s, description: text }));
+                    setSaved(false);
+                  }}
+                />
+              </div>
               <textarea
                 rows={3}
                 value={seo.description}
@@ -441,15 +528,44 @@ export default function EntryEditor() {
               <p className="text-xs text-tertiary mt-1 text-right">{seo.description.length}/160</p>
             </div>
             <div>
-              <label className="block text-xs text-tertiary mb-1">Imagen Open Graph (URL)</label>
-              <input
-                value={seo.openGraphImage ?? ''}
-                onChange={(e) => {
-                  setSeo({ ...seo, openGraphImage: e.target.value || undefined });
-                  setSaved(false);
-                }}
-                className={inputClass}
-              />
+              <label className="block text-xs text-tertiary mb-1">Imagen al compartir en redes (Open Graph)</label>
+              {seo.openGraphImage && (
+                <img src={seo.openGraphImage} alt="" className="mb-2 aspect-[1.91/1] w-full rounded-md border border-tertiary/20 object-cover" />
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOgPicker(true)}
+                  className="flex-1 rounded-md border border-tertiary/30 py-1.5 text-xs text-primary hover:bg-background"
+                >
+                  {seo.openGraphImage ? 'Cambiar' : 'Elegir de la biblioteca'}
+                </button>
+                {seo.openGraphImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSeo({ ...seo, openGraphImage: undefined });
+                      setSaved(false);
+                    }}
+                    className="px-2 text-xs text-red-500 hover:underline"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-tertiary">Ideal 1200 × 630 px. Es la que aparece al compartir el enlace.</p>
+              {ogPicker && (
+                <MediaPicker
+                  onClose={() => setOgPicker(false)}
+                  onSelect={([media]) => {
+                    setOgPicker(false);
+                    if (media) {
+                      setSeo((s) => ({ ...s, openGraphImage: media.url }));
+                      setSaved(false);
+                    }
+                  }}
+                />
+              )}
             </div>
             <label className="flex items-center gap-2 text-sm text-primary cursor-pointer">
               <input
@@ -489,6 +605,44 @@ export default function EntryEditor() {
             }}
           />
         </Suspense>
+      )}
+    </div>
+  );
+}
+
+function ScheduleField({
+  label,
+  value,
+  onChange,
+  verb,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  verb: string;
+}) {
+  const iso = fromLocalInput(value);
+  const past = !!iso && Date.parse(iso) <= Date.now();
+  return (
+    <div>
+      <label className="block text-xs text-tertiary mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="datetime-local"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputClass} py-1.5`}
+        />
+        {value && (
+          <button type="button" onClick={() => onChange('')} title="Quitar" className="text-xs text-tertiary hover:text-red-500">
+            Quitar
+          </button>
+        )}
+      </div>
+      {iso && (
+        <p className={`mt-1 text-xs ${past ? 'text-amber-600' : 'text-secondary'}`}>
+          {past ? 'Esa hora ya pasó: se aplicará en cuanto guardes.' : `${verb} el ${longDate(iso)}.`}
+        </p>
       )}
     </div>
   );

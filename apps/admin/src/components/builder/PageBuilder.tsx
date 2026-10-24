@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ISiteDesign } from '@raco/shared';
+import type { IMenu, ISiteDesign } from '@raco/shared';
 import { Check, Eye, Loader2, Monitor, Redo2, Smartphone, Tablet, Undo2, X } from 'lucide-react';
 import type { IPageBlock } from '@raco/shared';
 import {
@@ -28,10 +28,13 @@ import { metaOf } from './meta';
 import { useGoogleFonts, useSiteDesign } from '../../lib/siteDesign';
 import { useRuntimeTailwind } from '../../lib/tailwindRuntime';
 import { publishPreview } from '../../lib/previewChannel';
+import { useMenus } from '../../lib/menus';
+import { useBuilderData, type TemplateTarget } from './builderData';
 
 interface Props {
   title: string;
   preview?: { key: string; url: string }; // a dónde publicar la vista previa en vivo
+  template?: TemplateTarget; // al diseñar una plantilla del Theme Builder
   initialBlocks: IPageBlock[];
   onSave: (blocks: IPageBlock[]) => Promise<boolean>;
   onClose: (blocks: IPageBlock[]) => void;
@@ -55,6 +58,7 @@ const isTyping = (el: EventTarget | null) =>
 // Espera el diseño del sitio antes de montar el editor (lo necesitan el lienzo y los selectores de color)
 export default function PageBuilder(props: Props) {
   const design = useSiteDesign();
+  const menus = useMenus();
   if (!design) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 text-sm text-tertiary">
@@ -62,10 +66,19 @@ export default function PageBuilder(props: Props) {
       </div>
     );
   }
-  return <Builder {...props} design={design} />;
+  return <Builder {...props} design={design} menus={menus} />;
 }
 
-function Builder({ title, preview, initialBlocks, onSave, onClose, design }: Props & { design: ISiteDesign }) {
+function Builder({
+  title,
+  preview,
+  template,
+  initialBlocks,
+  onSave,
+  onClose,
+  design,
+  menus,
+}: Props & { design: ISiteDesign; menus: IMenu[] }) {
   const [history, setHistory] = useState<History>(() => ({ past: [], present: sortByOrder(initialBlocks), future: [] }));
   const blocks = history.present;
   const [savedBlocks, setSavedBlocks] = useState(blocks);
@@ -80,6 +93,7 @@ function Builder({ title, preview, initialBlocks, onSave, onClose, design }: Pro
   const [dropTarget, setDropTargetState] = useState<DropTarget | null>(null);
   const lastChange = useRef<{ key: string; at: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const data = useBuilderData(history.present, template);
 
   // CSS al vuelo para todo el constructor: estilos libres del lienzo y muestras de color del panel
   useGoogleFonts(design);
@@ -260,6 +274,12 @@ function Builder({ title, preview, initialBlocks, onSave, onClose, design }: Pro
   const api: BuilderApi = {
     blocks,
     design,
+    menus,
+    collections: data.collections,
+    dynamicFields: data.fields,
+    entryData: data.entryData,
+    archiveData: data.archiveData,
+    posts: data.posts,
     device,
     selectedId,
     hoveredId,
@@ -307,6 +327,23 @@ function Builder({ title, preview, initialBlocks, onSave, onClose, design }: Pro
             Cerrar
           </button>
           <p className="min-w-0 truncate font-heading text-sm font-semibold">{title || 'Sin título'}</p>
+          {template?.type === 'single' && (
+            <label className="hidden items-center gap-2 text-xs text-white/70 md:flex">
+              Ver con
+              <select
+                value={data.sampleId ?? ''}
+                onChange={(e) => data.setSampleId(e.target.value ? Number(e.target.value) : null)}
+                className="max-w-48 rounded-md border-0 bg-white/10 px-2 py-1 text-xs text-white focus:outline-none [&>option]:text-primary"
+              >
+                <option value="">Datos de ejemplo</option>
+                {data.entries.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title || e.slug}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="mx-auto flex gap-1 rounded-lg bg-white/10 p-1">
             {devices.map((d) => (

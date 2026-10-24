@@ -48,6 +48,13 @@ export class Entry {
   @Column({ type: 'json', nullable: true })
   blocks: IPageBlock[] | null;
 
+  // Programación: el SchedulerService publica/despublica cuando llega la hora
+  @Column({ type: 'datetime', nullable: true })
+  publishAt: Date | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  unpublishAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -3,6 +3,7 @@ export * from './types';
 export * from './styles';
 export * from './style';
 export * from './design';
+export * from './dynamic';
 export * from './tree';
 export * from './layouts';
 export * from './base';

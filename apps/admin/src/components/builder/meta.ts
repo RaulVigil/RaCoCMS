@@ -18,6 +18,8 @@ import {
   TrendingUp,
   Quote,
   MapPin,
+  Menu,
+  Newspaper,
   type LucideIcon,
 } from 'lucide-react';
 import type { ModuleType } from '@raco/blocks';
@@ -58,6 +60,8 @@ export const blockMeta: Record<string, BlockMeta> = {
   counter: { label: 'Contador', icon: TrendingUp, description: 'Una cifra destacada', ...levels.module },
   testimonial: { label: 'Testimonio', icon: Quote, description: 'Opinión de un cliente', ...levels.module },
   map: { label: 'Mapa', icon: MapPin, description: 'Google Maps por dirección', ...levels.module },
+  menu: { label: 'Menú', icon: Menu, description: 'Navegación del sitio', ...levels.module },
+  posts: { label: 'Listado de entradas', icon: Newspaper, description: 'Últimas noticias, viajes…', ...levels.module },
 };
 
 // Agrupados para el selector de módulos
@@ -65,6 +69,7 @@ export const moduleGroups: { label: string; types: ModuleType[] }[] = [
   { label: 'Básicos', types: ['heading', 'text', 'image', 'button', 'icon', 'list', 'divider', 'spacer'] },
   { label: 'Contenido', types: ['card', 'testimonial', 'counter', 'gallery', 'video', 'map'] },
   { label: 'Interactivos', types: ['accordion', 'tabs'] },
+  { label: 'Sitio', types: ['menu', 'posts'] },
 ];
 
 export const moduleTypes: ModuleType[] = moduleGroups.flatMap((g) => g.types);

@@ -34,6 +34,9 @@ import {
 import { LayoutGrid, PanelHeader } from './AddPanel';
 import { metaOf } from './meta';
 import StyleEditor from './StyleEditor';
+import DynamicBindings from './DynamicBindings';
+import { AiAction, AiMenu } from '../AiMenu';
+import { aiField } from '../../lib/ai';
 import { ModuleContent, ModuleDesign } from './ModulePanels';
 import { useBuilder } from './context';
 
@@ -114,7 +117,10 @@ export default function SettingsPanel({ block, ancestors, device, setDevice, upd
 
       <div className="space-y-5 p-4">
         {tab === 'content' && (
-          <ContentTab block={block} p={p} set={set} device={device} setDevice={setDevice} update={update} select={select} />
+          <>
+            <DynamicBindings block={block} update={(fn) => update(block.id, fn)} />
+            <ContentTab block={block} p={p} set={set} device={device} setDevice={setDevice} update={update} select={select} />
+          </>
         )}
         {tab === 'design' && (
           <>
@@ -190,8 +196,11 @@ function ContentTab({
     case 'heading':
       return (
         <>
-          <Field label="Texto">
+          <Field label="Texto" action={<AiMenu text={String(p.text ?? '')} onResult={(text) => set({ text })} />}>
             <textarea rows={2} value={String(p.text)} onChange={(e) => set({ text: e.target.value }, 'text')} className={smallInput} />
+          </Field>
+          <Field label="Enlace (opcional)" hint="Si lo pones, el título entero lleva a esa dirección. Ej: / para la portada.">
+            <input value={String(p.url ?? '')} onChange={(e) => set({ url: e.target.value }, 'url')} className={smallInput} />
           </Field>
           <Field label="Nivel" hint="Usa H1 una sola vez por página (el título principal). Ayuda al SEO.">
             <Segmented
@@ -215,9 +224,27 @@ function ContentTab({
     case 'image':
       return (
         <>
-          <ImagePicker value={String(p.src ?? '')} onChange={(src) => set({ src })} />
-          <Field label="Descripción de la imagen" hint="La leen los buscadores y los lectores de pantalla.">
+          <ImagePicker
+            value={String(p.src ?? '')}
+            onChange={(src, media) => set({ src, ...(media?.alt && !p.alt ? { alt: media.alt } : {}) })}
+          />
+          <Field
+            label="Descripción de la imagen"
+            hint="La leen los buscadores y los lectores de pantalla."
+            action={
+              <AiAction
+                label="Describir"
+                disabled={!p.src}
+                disabledHint="Sube una imagen primero"
+                run={() => aiField({ action: 'alt-text', imageUrl: String(p.src) })}
+                onResult={(alt) => set({ alt })}
+              />
+            }
+          >
             <input value={String(p.alt ?? '')} onChange={(e) => set({ alt: e.target.value }, 'alt')} className={smallInput} />
+          </Field>
+          <Field label="Enlace (opcional)" hint="Ej: / para que el logo lleve a la portada.">
+            <input value={String(p.url ?? '')} onChange={(e) => set({ url: e.target.value }, 'url')} className={smallInput} />
           </Field>
         </>
       );

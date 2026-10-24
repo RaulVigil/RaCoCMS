@@ -18,6 +18,10 @@ export class GlobalPart {
   @Column({ type: 'json' })
   blocks: IPageBlock[];
 
+  // Solo el header: queda fijo arriba al hacer scroll
+  @Column({ default: false })
+  sticky: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

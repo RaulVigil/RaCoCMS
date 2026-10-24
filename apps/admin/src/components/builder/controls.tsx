@@ -1,13 +1,17 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { ImagePlus, Loader2, Monitor, Smartphone, Tablet } from 'lucide-react';
-import type { ISiteDesign } from '@raco/shared';
+import { ImagePlus, Images, Loader2, Monitor, Smartphone, Tablet } from 'lucide-react';
+import type { IMedia, ISiteDesign } from '@raco/shared';
 import { colorValue, cx, type Background, type Device, type TextColor } from '@raco/blocks';
 import { uploadFile } from '../../lib/api';
+import MediaPicker from '../media/MediaPicker';
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, hint, action, children }: { label: string; hint?: string; action?: ReactNode; children: ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-medium text-primary mb-1">{label}</p>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-primary">{label}</p>
+        {action}
+      </div>
       {children}
       {hint && <p className="text-[11px] text-tertiary mt-1">{hint}</p>}
     </div>
@@ -129,9 +133,11 @@ export const alignOptions = [
   { value: 'right' as const, label: 'Der.' },
 ];
 
-export function ImagePicker({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+// Subir una imagen o elegir una de la biblioteca. Devuelve también el registro, por su texto alternativo
+export function ImagePicker({ value, onChange }: { value: string; onChange: (url: string, media?: IMedia) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [library, setLibrary] = useState(false);
   const [error, setError] = useState('');
 
   async function handleFile(file?: File) {
@@ -139,7 +145,8 @@ export function ImagePicker({ value, onChange }: { value: string; onChange: (url
     setUploading(true);
     setError('');
     try {
-      onChange((await uploadFile(file)).url);
+      const media = await uploadFile(file);
+      onChange(media.url, media);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -148,33 +155,58 @@ export function ImagePicker({ value, onChange }: { value: string; onChange: (url
     }
   }
 
+  const libraryButton = (
+    <button type="button" onClick={() => setLibrary(true)} className="text-secondary hover:underline">
+      Biblioteca
+    </button>
+  );
+
   return (
     <div>
       {value ? (
         <div className="space-y-2">
           <img src={value} alt="" className="h-32 w-full rounded-lg border border-tertiary/20 object-cover" />
-          <div className="flex gap-2 text-xs">
+          <div className="flex gap-3 text-xs">
             <button type="button" onClick={() => inputRef.current?.click()} className="text-secondary hover:underline">
-              Cambiar
+              Subir otra
             </button>
-            <button type="button" onClick={() => onChange('')} className="text-red-500 hover:underline">
+            {libraryButton}
+            <button type="button" onClick={() => onChange('')} className="ml-auto text-red-500 hover:underline">
               Quitar
             </button>
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-tertiary/30 py-6 text-xs text-tertiary hover:border-secondary hover:text-secondary disabled:opacity-60"
-        >
-          {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-          {uploading ? 'Subiendo...' : 'Subir imagen'}
-        </button>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-tertiary/30 py-5 text-xs text-tertiary hover:border-secondary hover:text-secondary disabled:opacity-60"
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+            {uploading ? 'Subiendo...' : 'Subir imagen'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setLibrary(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-tertiary/30 py-1.5 text-xs text-primary hover:bg-background"
+          >
+            <Images size={14} /> Elegir de la biblioteca
+          </button>
+        </div>
       )}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {library && (
+        <MediaPicker
+          onClose={() => setLibrary(false)}
+          onSelect={([media]) => {
+            setLibrary(false);
+            if (media) onChange(media.url, media);
+          }}
+        />
+      )}
     </div>
   );
 }

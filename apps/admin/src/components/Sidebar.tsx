@@ -150,7 +150,7 @@ export default function Sidebar() {
 
         <NavLink to="/templates" className={({ isActive }) => linkClass(isActive)}>
           <Layout size={18} />
-          Templates
+          Theme Builder
         </NavLink>
 
         <NavLink to="/global-parts" className={({ isActive }) => linkClass(isActive)}>
@@ -165,7 +165,7 @@ export default function Sidebar() {
 
         <NavLink to="/media" className={({ isActive }) => linkClass(isActive)}>
           <Image size={18} />
-          Media
+          Multimedia
         </NavLink>
 
         <NavLink to="/ai" className={({ isActive }) => linkClass(isActive)}>

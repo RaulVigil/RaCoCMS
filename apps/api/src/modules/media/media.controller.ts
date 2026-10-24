@@ -2,11 +2,15 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Delete,
   Param,
+  Query,
+  Body,
   UseInterceptors,
   UploadedFile,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
@@ -27,13 +31,24 @@ export class MediaController {
   }
 
   @Get()
-  findAll() {
-    return this.mediaService.getFiles();
+  findAll(@Query('search') search?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.mediaService.list(search ?? '', Number(page) || 1, Number(limit) || 60);
   }
 
-  @Delete(':filename')
+  @Get(':id/usage')
+  usage(@Param('id', ParseIntPipe) id: number) {
+    return this.mediaService.usage(id);
+  }
+
+  @Put(':id')
+  @Roles('admin', 'editor')
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: { alt?: string }) {
+    return this.mediaService.update(id, body);
+  }
+
+  @Delete(':id')
   @Roles('admin')
-  remove(@Param('filename') filename: string) {
-    return this.mediaService.deleteFile(filename);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.mediaService.remove(id);
   }
 }

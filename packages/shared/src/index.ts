@@ -31,12 +31,27 @@ export interface IEntry {
   data: Record<string, unknown>; // valores de los Field Groups, por key
   terms: Record<string, string[]> | null; // { [taxonomyId]: termId[] }
   blocks: IPageBlock[] | null; // diseño del constructor visual
+  publishAt?: string | null; // publicación programada (ISO)
+  unpublishAt?: string | null; // despublicación programada (ISO)
   seoData: ISeoMetadata;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export type EntryStatus = 'draft' | 'published' | 'archived';
+
+// --- 2.0 Historial de revisiones ---
+// Copia de lo editable de una entrada en el momento en que se guardó
+export type IEntrySnapshot = Pick<IEntry, 'title' | 'slug' | 'status' | 'data' | 'terms' | 'seoData' | 'blocks'>;
+
+export interface IEntryRevision {
+  id: number;
+  entryId: number;
+  note: string; // "Creada", "Editada", "Publicada", "Restaurada desde #12"...
+  authorEmail: string | null;
+  createdAt: string;
+  snapshot?: IEntrySnapshot; // solo al pedir una revisión concreta
+}
 
 // --- 2.1 Taxonomías (tipo ACF) ---
 export interface ITaxonomy {
@@ -84,10 +99,14 @@ export interface IFieldGroup {
 }
 
 // --- 3. Theme Builder y Partes Globales ---
+// Theme Builder: cómo se ve cada entrada ("single") o el listado ("archive") de una colección
+export type TemplateType = 'single' | 'archive';
+
 export interface ITemplate {
   id: number;
   name: string;
-  collectionId: string; // A qué colección aplica (ej. "single-noticia")
+  collectionId: string;
+  type: TemplateType;
   blocks: IPageBlock[];
 }
 
@@ -95,6 +114,7 @@ export interface IGlobalPart {
   id: string; // ej: "header", "footer"
   name: string;
   blocks: IPageBlock[];
+  sticky?: boolean; // solo header: queda fijo arriba al hacer scroll
 }
 
 // --- 4. Sistema de Menús (Drag & Drop) ---
@@ -107,13 +127,14 @@ export interface IMenu {
 export interface IMenuItem {
   id: string;
   label: string;
-  url: string;
+  url: string; // en page/entry es una copia; la API pública la recalcula desde ref
   type: MenuItemType;
   target: '_self' | '_blank';
   children: IMenuItem[];
+  ref?: { collectionId: string; entryId: number }; // enlace a una entrada: no se rompe si cambia su slug
 }
 
-export type MenuItemType = 'custom' | 'page' | 'entry';
+export type MenuItemType = 'custom' | 'page' | 'entry' | 'archive';
 
 // --- 5. Estructura de Bloques (Motor Responsivo) ---
 // Estructura tipo Divi pero más flexible: section > row > column > módulos (o filas anidadas)
@@ -155,6 +176,28 @@ export interface ISiteGeneral {
   tagline: string; // descripción corta, se usa como meta description por defecto
   homePageId: number | null; // entrada de "pages" que se muestra en "/"
   language: string; // ej: "es", para <html lang>
+}
+
+// --- 5.3 Biblioteca multimedia ---
+export interface IMedia {
+  id: number;
+  filename: string;
+  originalName: string;
+  url: string; // /uploads/archivo.webp
+  mimeType: string;
+  size: number; // bytes
+  width: number | null;
+  height: number | null;
+  alt: string; // texto alternativo por defecto al insertarla
+  createdAt: string;
+}
+
+// Dónde aparece una imagen (para avisar antes de borrarla)
+export interface IMediaUsage {
+  kind: 'entry' | 'global-part' | 'template' | 'settings';
+  id: string | number;
+  title: string;
+  collectionId?: string;
 }
 
 // --- 6. SEO Metadata ---

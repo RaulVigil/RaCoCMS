@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import type { IMenuItem } from '@raco/shared';
 import { Entry } from '../entries/entry.entity';
 import { Collection } from '../collections/collection.entity';
 import { FieldGroup } from '../field-groups/field-group.entity';
 import { Setting } from '../settings/setting.entity';
+import { GlobalPart } from '../global-parts/global-part.entity';
+import { Menu } from '../menus/menu.entity';
+import { Template } from '../templates/template.entity';
 
 // Lectura pública para el front: solo contenido publicado, nunca borradores ni archivados
 @Injectable()
@@ -14,12 +18,57 @@ export class PublicService {
     @InjectRepository(Collection) private collections: Repository<Collection>,
     @InjectRepository(FieldGroup) private fieldGroups: Repository<FieldGroup>,
     @InjectRepository(Setting) private settings: Repository<Setting>,
+    @InjectRepository(GlobalPart) private parts: Repository<GlobalPart>,
+    @InjectRepository(Menu) private menus: Repository<Menu>,
+    @InjectRepository(Template) private templates: Repository<Template>,
   ) {}
 
+  // Todo lo común a cualquier página: ajustes, header, footer y menús (con sus URLs ya resueltas)
   async site() {
-    const rows = await this.settings.find();
+    const [rows, parts, menus] = await Promise.all([this.settings.find(), this.parts.find(), this.menus.find()]);
     const value = (key: string) => rows.find((r) => r.key === key)?.value ?? null;
-    return { general: value('general'), design: value('design') };
+    const general = value('general') as { homePageId?: number } | null;
+    const part = (id: string) => parts.find((p) => p.id === id);
+
+    return {
+      general,
+      design: value('design'),
+      header: { blocks: part('header')?.blocks ?? [], sticky: !!part('header')?.sticky },
+      footer: { blocks: part('footer')?.blocks ?? [] },
+      menus: await this.resolveMenus(menus, general?.homePageId ?? null),
+    };
+  }
+
+  // Los enlaces a entradas se guardan por id: aquí se calcula su URL actual.
+  // Si la entrada ya no está publicada, el enlace se quita en vez de quedar roto.
+  private async resolveMenus(menus: Menu[], homePageId: number | null) {
+    const ids = new Set<number>();
+    const collect = (items: IMenuItem[]) =>
+      items.forEach((i) => {
+        if (i.ref) ids.add(i.ref.entryId);
+        collect(i.children ?? []);
+      });
+    menus.forEach((m) => collect(m.items));
+
+    const published = ids.size
+      ? await this.entries.find({
+          where: { id: In([...ids]), status: 'published' },
+          select: { id: true, slug: true, collectionId: true },
+        })
+      : [];
+    const urlOf = new Map(
+      published.map((e) => [
+        e.id,
+        e.id === homePageId ? '/' : e.collectionId === 'pages' ? `/${e.slug}` : `/${e.collectionId}/${e.slug}`,
+      ]),
+    );
+
+    const resolve = (items: IMenuItem[]): IMenuItem[] =>
+      items
+        .filter((i) => !i.ref || urlOf.has(i.ref.entryId))
+        .map((i) => ({ ...i, url: i.ref ? urlOf.get(i.ref.entryId)! : i.url, children: resolve(i.children ?? []) }));
+
+    return menus.map((m) => ({ id: m.id, name: m.name, items: resolve(m.items) }));
   }
 
   listCollections() {
@@ -41,7 +90,8 @@ export class PublicService {
       skip: (Math.max(page, 1) - 1) * take,
       take,
     });
-    return { collection, items, total, page, totalPages: Math.ceil(total / take) };
+    const template = await this.templates.findOne({ where: { collectionId, type: 'archive' } });
+    return { collection, items, total, page, totalPages: Math.ceil(total / take), template };
   }
 
   async entry(collectionId: string, slug: string) {
@@ -74,10 +124,11 @@ export class PublicService {
 
   // La entrada con su colección y sus grupos de campos (para la plantilla genérica)
   private async withContext(entry: Entry) {
-    const [collection, fieldGroups] = await Promise.all([
+    const [collection, fieldGroups, template] = await Promise.all([
       this.collections.findOne({ where: { id: entry.collectionId } }),
       this.fieldGroups.find({ where: { collectionId: entry.collectionId } }),
+      this.templates.findOne({ where: { collectionId: entry.collectionId, type: 'single' } }),
     ]);
-    return { entry, collection, fieldGroups };
+    return { entry, collection, fieldGroups, template };
   }
 }

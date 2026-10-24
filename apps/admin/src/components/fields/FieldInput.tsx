@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
-import { ImagePlus, Loader2, X } from 'lucide-react';
+import { ImagePlus, Images, Loader2, X } from 'lucide-react';
 import type { JSONContent } from '@tiptap/react';
 import type { IFieldDefinition } from '@raco/shared';
 import { uploadFile } from '../../lib/api';
 import RichTextEditor from './RichTextEditor';
 import { inputClass } from './fieldTypes';
-
+import { AiMenu } from '../AiMenu';
+import MediaPicker from '../media/MediaPicker';
 
 interface Props {
   field: IFieldDefinition;
@@ -17,10 +18,15 @@ interface Props {
 export default function FieldInput({ field, value, error, onChange }: Props) {
   return (
     <div>
-      <label className="block text-sm text-primary font-medium mb-1">
-        {field.label}
-        {field.required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <label className="block text-sm text-primary font-medium">
+          {field.label}
+          {field.required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        {(field.type === 'text' || field.type === 'textarea') && (
+          <AiMenu text={typeof value === 'string' ? value : ''} onResult={onChange} />
+        )}
+      </div>
       {field.instructions && <p className="text-xs text-tertiary mb-1.5">{field.instructions}</p>}
       <Control field={field} value={value} onChange={onChange} />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -130,6 +136,7 @@ function Control({ field, value, onChange }: Omit<Props, 'error'>) {
 function ImageField({ value, onChange }: { value: string; onChange: (v: string | null) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [library, setLibrary] = useState(false);
   const [error, setError] = useState('');
 
   async function handleFile(file: File | undefined) {
@@ -161,15 +168,33 @@ function ImageField({ value, onChange }: { value: string; onChange: (v: string |
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-2 px-4 py-6 w-full justify-center rounded-lg border-2 border-dashed border-tertiary/30 text-sm text-tertiary hover:border-secondary hover:text-secondary disabled:opacity-60"
-        >
-          {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
-          {uploading ? 'Subiendo...' : 'Subir imagen'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-2 px-4 py-6 flex-1 justify-center rounded-lg border-2 border-dashed border-tertiary/30 text-sm text-tertiary hover:border-secondary hover:text-secondary disabled:opacity-60"
+          >
+            {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
+            {uploading ? 'Subiendo...' : 'Subir imagen'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setLibrary(true)}
+            className="flex items-center gap-2 px-4 rounded-lg border border-tertiary/30 text-sm text-primary hover:bg-background"
+          >
+            <Images size={18} /> Biblioteca
+          </button>
+        </div>
+      )}
+      {library && (
+        <MediaPicker
+          onClose={() => setLibrary(false)}
+          onSelect={([media]) => {
+            setLibrary(false);
+            if (media) onChange(media.url);
+          }}
+        />
       )}
       <input
         ref={inputRef}

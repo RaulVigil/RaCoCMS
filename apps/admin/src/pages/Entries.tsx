@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import type { EntryStatus, ICollection, IEntry } from '@raco/shared';
 import { api } from '../lib/api';
+import { shortDate } from '../lib/dates';
 
 export const statusLabels: Record<EntryStatus, string> = {
   draft: 'Borrador',
@@ -135,6 +136,14 @@ export default function Entries() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyles[entry.status]}`}>
                       {statusLabels[entry.status]}
                     </span>
+                    {entry.status !== 'published' && entry.publishAt && (
+                      <span className="ml-1.5 px-2 py-0.5 rounded-full bg-violet-100 text-xs font-medium text-violet-700">
+                        Programada · {shortDate(entry.publishAt)}
+                      </span>
+                    )}
+                    {entry.status === 'published' && entry.unpublishAt && (
+                      <span className="ml-1.5 text-xs text-tertiary">hasta {shortDate(entry.unpublishAt)}</span>
+                    )}
                   </td>
                   <td className="px-6 py-3 text-sm text-tertiary">
                     {entry.updatedAt && new Date(entry.updatedAt).toLocaleDateString()}

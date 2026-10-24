@@ -1,10 +1,14 @@
+import { useContext } from 'react';
 import type { IPageBlock } from '@raco/shared';
 import { blockComponents } from './components';
+import { EntryContext, resolveDynamic } from './dynamic';
 import { visibilityOf } from './types';
 import { sortByOrder } from './tree';
 
 // Render para la web pública (Astro): sin controles de edición y con visibilidad por dispositivo
-export function BlockView({ block }: { block: IPageBlock }) {
+export function BlockView({ block: raw }: { block: IPageBlock }) {
+  // En plantillas, las propiedades vinculadas toman los datos de la entrada que se muestra
+  const block = resolveDynamic(raw, useContext(EntryContext));
   const Component = blockComponents[block.type];
   if (!Component) return null;
   return (

@@ -1,10 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { createElement } from 'react';
 import { getCollections, getEntries, getEntry, getSite } from '../lib/api';
-import { entryElement, notFoundElement } from '../lib/content';
+import { archiveContent, entryContent, notFoundElement, type Content } from '../lib/content';
 import { renderPage } from '../lib/render';
-import ArchiveTemplate from '../templates/ArchiveTemplate';
 
 // Un solo segmento: o es el listado de una colección (/noticias) o una página (/contacto)
 const slug = Astro.params.slug!;
@@ -13,29 +11,29 @@ const archive = collections.find((c) => !c.isNative && c.id === slug);
 
 let title: string | undefined;
 let seo;
-let element;
+let content: Content | undefined;
 
 if (archive) {
   const list = await getEntries(archive.id, Number(Astro.url.searchParams.get('page')) || 1);
   title = archive.name;
-  element = list ? createElement(ArchiveTemplate, list) : notFoundElement();
+  if (list) content = archiveContent(list);
 } else {
   const ctx = await getEntry('pages', slug);
   if (ctx && ctx.entry.id === site.general.homePageId) return Astro.redirect('/', 301);
   if (ctx) {
     title = ctx.entry.title;
     seo = ctx.entry.seoData;
-    element = entryElement(ctx);
+    content = entryContent(ctx);
   }
 }
 
-if (!element) {
+if (!content) {
   Astro.response.status = 404;
   title = 'Página no encontrada';
-  element = notFoundElement();
+  content = { element: notFoundElement(), blocks: [] };
 }
 
-const page = await renderPage(element, site);
+const page = await renderPage(content.element, site, Astro.url.pathname, content.blocks);
 ---
 
 <Layout site={site} page={page} title={title} seo={seo} noIndex={Astro.response.status === 404} />

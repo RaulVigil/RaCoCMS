@@ -1,7 +1,9 @@
-import type { ComponentType } from 'react';
-import { ChevronDown, Star } from 'lucide-react';
-import { clamp, Placeholder, useIsEditor, type BlockComponentProps } from './base';
+import { useContext, type ComponentType } from 'react';
+import { ChevronDown, Menu as MenuIcon, Star, X } from 'lucide-react';
+import type { IMenuItem } from '@raco/shared';
+import { clamp, Placeholder, safeUrl, useIsEditor, useSite, type BlockComponentProps } from './base';
 import { iconByName } from './icons';
+import { ArchiveContext, PostsContext, type PostItem } from './dynamic';
 import { RichText } from './RichText';
 import { styleClasses } from './style';
 import { propsOf, type Background, type IconSize, type RichDoc, type TextColor } from './types';
@@ -63,7 +65,7 @@ export function IconModule({ block, visible, attrs }: BlockComponentProps) {
   return (
     <div {...attrs} className={cx(displayClass('flex', visible), flexAlign[p.align], s.outer, attrs?.className)}>
       {p.url ? (
-        <a href={p.url} aria-label={p.name}>
+        <a href={safeUrl(p.url)} aria-label={p.name}>
           {badge}
         </a>
       ) : (
@@ -122,7 +124,7 @@ export function Card({ block, visible, attrs }: BlockComponentProps) {
         {p.title && <h3 className="font-heading text-xl font-bold leading-snug">{p.title}</h3>}
         {p.text && <p className="mt-2 whitespace-pre-line leading-relaxed opacity-80">{p.text}</p>}
         {p.linkText && (
-          <a href={p.url || '#'} className="mt-4 inline-flex items-center gap-1 font-semibold text-secondary hover:underline">
+          <a href={safeUrl(p.url)} className="mt-4 inline-flex items-center gap-1 font-semibold text-secondary hover:underline">
             {p.linkText} <span aria-hidden="true">→</span>
           </a>
         )}
@@ -343,6 +345,197 @@ export function MapModule({ block, visible, attrs }: BlockComponentProps) {
   );
 }
 
+const menuGap = { sm: 'gap-x-3 gap-y-1', md: 'gap-x-6 gap-y-2', lg: 'gap-x-10 gap-y-3' };
+const menuJustify = { left: 'justify-start', center: 'justify-center', right: 'justify-end' };
+
+// Menú del sitio: horizontal con desplegables en escritorio y botón ☰ en móvil (<details>, sin JavaScript)
+export function MenuModule({ block, visible, attrs }: BlockComponentProps) {
+  const p = propsOf(block, 'menu');
+  const s = styleClasses(block);
+  const editor = useIsEditor();
+  const { menus, currentPath } = useSite();
+  const menu = menus.find((m) => m.id === p.menuId);
+
+  if (!menu?.items.length) {
+    return editor ? <Placeholder label={menu ? 'Menú vacío: añade enlaces en la sección Menús' : 'Elige un menú en el panel'} /> : null;
+  }
+
+  const isCurrent = (url: string) =>
+    !!currentPath && (url === currentPath || (url !== '/' && currentPath.startsWith(`${url}/`)));
+
+  const link = (item: IMenuItem, className?: string) => (
+    <a
+      href={safeUrl(item.url)}
+      target={item.target === '_blank' ? '_blank' : undefined}
+      rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+      aria-current={isCurrent(item.url) ? 'page' : undefined}
+      className={cx('transition-opacity hover:opacity-70 aria-[current=page]:font-semibold', className)}
+    >
+      {item.label}
+    </a>
+  );
+
+  const horizontal = p.layout === 'horizontal';
+  const hamburger = p.mobile === 'hamburger';
+
+  const desktop = (
+    <ul
+      className={cx(
+        horizontal ? cx('flex-wrap items-center', menuGap[p.gap], menuJustify[p.align]) : 'flex-col gap-2',
+        hamburger ? 'hidden @3xl:flex' : 'flex',
+      )}
+    >
+      {menu.items.map((item) => (
+        <li key={item.id} className={cx('relative', !!item.children?.length && 'group/item')}>
+          <span className="inline-flex items-center gap-1">
+            {link(item)}
+            {horizontal && !!item.children?.length && <ChevronDown aria-hidden="true" className="h-4 w-4 opacity-60" />}
+          </span>
+          {!!item.children?.length &&
+            (horizontal ? (
+              // pt-2 en vez de margen: el hueco sigue siendo parte del hover y el menú no se cierra al bajar
+              <div
+                className={cx(
+                  'invisible absolute top-full z-50 pt-2 opacity-0 transition group-hover/item:visible group-hover/item:opacity-100 group-focus-within/item:visible group-focus-within/item:opacity-100',
+                  p.align === 'right' ? 'right-0' : 'left-0',
+                )}
+              >
+                <ul className="min-w-48 rounded-lg bg-white py-2 text-left text-slate-900 shadow-xl">
+                  {item.children.map((child) => (
+                    <li key={child.id}>{link(child, 'block whitespace-nowrap px-4 py-2 hover:bg-slate-100 hover:opacity-100')}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <ul className="ml-4 mt-2 flex flex-col gap-2 text-sm">
+                {item.children.map((child) => (
+                  <li key={child.id}>{link(child)}</li>
+                ))}
+              </ul>
+            ))}
+        </li>
+      ))}
+    </ul>
+  );
+
+  return (
+    <nav
+      aria-label={menu.name}
+      {...attrs}
+      className={cx(displayClass('block', visible), s.outer, s.inner, attrs?.className)}
+    >
+      {desktop}
+      {hamburger && (
+        <div className={cx('flex @3xl:hidden', menuJustify[p.align])}>
+          <details className="group/menu relative">
+            <summary
+              aria-label="Abrir menú"
+              className="flex cursor-pointer list-none items-center p-1 [&::-webkit-details-marker]:hidden"
+            >
+              <MenuIcon aria-hidden="true" className="h-7 w-7 group-open/menu:hidden" />
+              <X aria-hidden="true" className="hidden h-7 w-7 group-open/menu:block" />
+            </summary>
+            <div
+              className={cx(
+                'absolute top-full z-50 mt-2 w-64 rounded-xl bg-white p-2 text-left text-slate-900 shadow-2xl',
+                p.align === 'left' ? 'left-0' : 'right-0',
+              )}
+            >
+              <ul className="flex flex-col">
+                {menu.items.map((item) => (
+                  <li key={item.id}>
+                    {link(item, 'block rounded-lg px-3 py-2.5 hover:bg-slate-100 hover:opacity-100')}
+                    {!!item.children?.length && (
+                      <ul className="ml-3 border-l border-slate-200 pl-2">
+                        {item.children.map((child) => (
+                          <li key={child.id}>{link(child, 'block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 hover:opacity-100')}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+const postAspect = { video: 'aspect-video', square: 'aspect-square', portrait: 'aspect-[3/4]' };
+
+const samplePosts: PostItem[] = [1, 2, 3].map((n) => ({
+  id: -n,
+  title: `Título de ejemplo ${n}`,
+  url: '#',
+  date: 'Fecha',
+  excerpt: 'Aquí aparecerá el extracto de cada entrada, tomado de su descripción o de su primer texto.',
+  image: null,
+}));
+
+// Listado de entradas: en la plantilla de listado muestra la página actual con paginación;
+// en cualquier otra página, las últimas de la colección elegida
+export function Posts({ block, visible, attrs }: BlockComponentProps) {
+  const p = propsOf(block, 'posts');
+  const s = styleClasses(block);
+  const editor = useIsEditor();
+  const archive = useContext(ArchiveContext);
+  const lists = useContext(PostsContext);
+
+  const current = p.source === 'current';
+  let items = current ? (archive?.items ?? []) : (lists[p.source] ?? []).slice(0, clamp(p.limit, 1, 48));
+  if (!items.length && editor) items = samplePosts;
+  if (!items.length) return null;
+
+  const n = (d: 'mobile' | 'tablet' | 'desktop') => clamp(p.columns[d], 1, 6);
+  const card = p.variant === 'card';
+
+  return (
+    <div {...attrs} className={cx(displayClass('block', visible), s.outer, s.inner, attrs?.className)}>
+      <div className={`grid gap-8 grid-cols-${n('mobile')} @3xl:grid-cols-${n('tablet')} @5xl:grid-cols-${n('desktop')}`}>
+        {items.map((item) => (
+          <a
+            key={item.id}
+            href={safeUrl(item.url)}
+            className={cx('group flex flex-col gap-3', card && 'rounded-2xl bg-white p-4 text-primary shadow-lg')}
+          >
+            {p.showImage &&
+              (item.image ? (
+                <img
+                  src={item.image}
+                  alt=""
+                  loading="lazy"
+                  className={cx('w-full rounded-xl object-cover transition-opacity group-hover:opacity-90', postAspect[p.imageAspect])}
+                />
+              ) : (
+                editor && <div className={cx('w-full rounded-xl bg-current/10', postAspect[p.imageAspect])} />
+              ))}
+            {p.showDate && item.date && <p className="text-sm opacity-60">{item.date}</p>}
+            <h3 className="font-heading text-xl font-bold leading-snug group-hover:text-secondary">{item.title}</h3>
+            {p.showExcerpt && item.excerpt && <p className="leading-relaxed opacity-80">{item.excerpt}</p>}
+          </a>
+        ))}
+      </div>
+
+      {current && p.pagination && archive && archive.totalPages > 1 && (
+        <nav className="mt-12 flex items-center justify-center gap-2" aria-label="Paginación">
+          {Array.from({ length: archive.totalPages }, (_, i) => i + 1).map((page) => (
+            <a
+              key={page}
+              href={page === 1 ? archive.baseUrl : `${archive.baseUrl}?page=${page}`}
+              aria-current={page === archive.page ? 'page' : undefined}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium hover:bg-current/10 aria-[current=page]:bg-primary aria-[current=page]:text-white"
+            >
+              {page}
+            </a>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 export const moduleComponents: Record<string, ComponentType<BlockComponentProps>> = {
   icon: IconModule,
   card: Card,
@@ -352,4 +545,6 @@ export const moduleComponents: Record<string, ComponentType<BlockComponentProps>
   counter: Counter,
   testimonial: Testimonial,
   map: MapModule,
+  menu: MenuModule,
+  posts: Posts,
 };

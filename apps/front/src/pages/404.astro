@@ -5,7 +5,7 @@ import { notFoundElement } from '../lib/content';
 import { renderPage } from '../lib/render';
 
 const site = await getSite();
-const page = await renderPage(notFoundElement(), site);
+const page = await renderPage(notFoundElement(), site, Astro.url.pathname);
 ---
 
 <Layout site={site} page={page} title="Página no encontrada" noIndex />

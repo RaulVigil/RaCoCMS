@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getEntry, getSite } from '../../lib/api';
-import { entryElement, notFoundElement } from '../../lib/content';
+import { entryContent, notFoundElement } from '../../lib/content';
 import { renderPage } from '../../lib/render';
 
 const { collection, slug } = Astro.params as { collection: string; slug: string };
@@ -12,7 +12,8 @@ if (collection === 'pages') return Astro.redirect(`/${slug}`, 301);
 const [site, ctx] = await Promise.all([getSite(), getEntry(collection, slug)]);
 if (!ctx) Astro.response.status = 404;
 
-const page = await renderPage(ctx ? entryElement(ctx) : notFoundElement(), site);
+const content = ctx ? entryContent(ctx) : { element: notFoundElement(), blocks: [] };
+const page = await renderPage(content.element, site, Astro.url.pathname, content.blocks);
 ---
 
 <Layout

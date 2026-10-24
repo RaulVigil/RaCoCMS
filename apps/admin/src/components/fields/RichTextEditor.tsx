@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import { useEditor, useEditorState, EditorContent, type JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Bold, Italic, Strikethrough, Heading2, Heading3, List, ListOrdered, Quote, Undo2, Redo2 } from 'lucide-react';
+import { AiMenu } from '../AiMenu';
 
 interface Props {
   value: JSONContent | null;
@@ -9,6 +11,9 @@ interface Props {
 
 // El contenido se guarda como el JSON de Tiptap/ProseMirror, nunca como HTML
 export default function RichTextEditor({ value, onChange }: Props) {
+  // Último rango seleccionado: al hacer clic en el menú de IA el editor pierde el foco
+  const rangeRef = useRef<{ from: number; to: number } | null>(null);
+
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: { levels: [2, 3] }, link: false })],
     content: value ?? '',
@@ -19,6 +24,10 @@ export default function RichTextEditor({ value, onChange }: Props) {
       },
     },
     onUpdate: ({ editor }) => onChange(editor.isEmpty ? null : editor.getJSON()),
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      rangeRef.current = from !== to ? { from, to } : null;
+    },
   });
 
   const active = useEditorState({
@@ -32,8 +41,19 @@ export default function RichTextEditor({ value, onChange }: Props) {
       bulletList: editor?.isActive('bulletList') ?? false,
       orderedList: editor?.isActive('orderedList') ?? false,
       blockquote: editor?.isActive('blockquote') ?? false,
+      selection: editor ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, '\n') : '',
     }),
   });
+
+  // La IA reemplaza solo lo seleccionado; si devuelve varios párrafos, se insertan como párrafos
+  function replaceSelection(text: string) {
+    const range = rangeRef.current;
+    if (!editor || !range) return;
+    const paragraphs = text.split(/\n{2,}/).filter(Boolean);
+    const content =
+      paragraphs.length > 1 ? paragraphs.map((p) => ({ type: 'paragraph', content: [{ type: 'text', text: p }] })) : text;
+    editor.chain().focus().insertContentAt(range, content).run();
+  }
 
   if (!editor) return null;
 
@@ -61,7 +81,10 @@ export default function RichTextEditor({ value, onChange }: Props) {
             <Icon size={15} />
           </button>
         ))}
-        <div className="ml-auto flex gap-0.5">
+        <div className="ml-auto flex items-center gap-0.5">
+          <span title={active?.selection ? undefined : 'Selecciona un texto para reescribirlo o traducirlo con IA'}>
+            <AiMenu text={active?.selection ?? ''} onResult={replaceSelection} compact />
+          </span>
           <button
             type="button"
             onClick={() => editor.chain().focus().undo().run()}

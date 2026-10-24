@@ -1,5 +1,5 @@
 import { createContext, useContext, type ComponentType, type HTMLAttributes, type ReactNode } from 'react';
-import { clamp, EditorContext, Placeholder, useIsEditor, type BlockComponentProps } from './base';
+import { clamp, EditorContext, Placeholder, safeUrl, useIsEditor, type BlockComponentProps } from './base';
 import { moduleComponents } from './modules';
 import type { IPageBlock } from '@raco/shared';
 import { blockDefaults, propsOf, type RowProps, type Visibility } from './types';
@@ -171,7 +171,13 @@ export function Heading({ block, visible, attrs }: BlockComponentProps) {
         attrs?.className,
       )}
     >
-      {p.text}
+      {p.url ? (
+        <a href={safeUrl(p.url)} className="hover:opacity-80">
+          {p.text}
+        </a>
+      ) : (
+        p.text
+      )}
     </Tag>
   );
 }
@@ -206,23 +212,34 @@ export function Image({ block, visible, attrs }: BlockComponentProps) {
   const s = styleClasses(block);
   const editor = useIsEditor();
   if (!p.src) return editor ? <Placeholder label="Imagen: súbela en el panel de ajustes" /> : null;
+  const visual = cx(
+    'h-auto',
+    !s.has('width') && 'w-full',
+    imageAspect[p.aspect],
+    p.rounded && !s.has('borderRadius') && 'rounded-2xl',
+    p.shadow && !s.has('boxShadow') && 'shadow-xl',
+    s.inner,
+  );
+
+  // Con enlace: el <a> lleva la visibilidad y los márgenes; la imagen, todo lo visual
+  if (p.url) {
+    return (
+      <a
+        href={safeUrl(p.url)}
+        {...(attrs as HTMLAttributes<HTMLAnchorElement>)}
+        className={cx(displayClass('block', visible), s.outer, attrs?.className)}
+      >
+        <img src={p.src} alt={p.alt} loading="lazy" className={cx('block', visual)} />
+      </a>
+    );
+  }
   return (
     <img
       src={p.src}
       alt={p.alt}
       loading="lazy"
       {...(attrs as HTMLAttributes<HTMLImageElement>)}
-      className={cx(
-        displayClass('block', visible),
-        'h-auto',
-        !s.has('width') && 'w-full',
-        imageAspect[p.aspect],
-        p.rounded && !s.has('borderRadius') && 'rounded-2xl',
-        p.shadow && !s.has('boxShadow') && 'shadow-xl',
-        s.outer,
-        s.inner,
-        attrs?.className,
-      )}
+      className={cx(displayClass('block', visible), visual, s.outer, attrs?.className)}
     />
   );
 }
@@ -237,7 +254,7 @@ export function Button({ block, visible, attrs }: BlockComponentProps) {
   return (
     <div {...attrs} className={cx(displayClass('flex', visible), flexAlign[p.align], s.outer, attrs?.className)}>
       <a
-        href={p.url || '#'}
+        href={safeUrl(p.url)}
         target={p.newTab ? '_blank' : undefined}
         rel={p.newTab ? 'noopener noreferrer' : undefined}
         className={cx(

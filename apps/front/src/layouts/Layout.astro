@@ -50,6 +50,8 @@ const robots = noIndex || seo.noIndex ? 'noindex, nofollow' : 'index, follow';
     <style is:inline set:html={page.css}></style>
   </head>
   <body class={page.bodyClass}>
-    <Fragment set:html={page.html} />
+    {page.header && <header class={page.stickyHeader ? 'sticky top-0 z-40' : undefined} set:html={page.header} />}
+    <main class="flex-1" set:html={page.html} />
+    {page.footer && <footer set:html={page.footer} />}
   </body>
 </html>

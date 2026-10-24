@@ -55,6 +55,8 @@ const groupsByType: Record<string, Group[]> = {
   counter: ['spacing', 'size', 'typography', 'background', 'border', 'effects'],
   testimonial: ['spacing', 'size', 'typography', 'background', 'border', 'effects'],
   map: ['spacing', 'size', 'border', 'effects'],
+  menu: ['spacing', 'typography', 'background', 'border'],
+  posts: ['spacing', 'size', 'typography', 'background', 'border'],
 };
 
 const groupProps: Record<Group, StyleProp[]> = {

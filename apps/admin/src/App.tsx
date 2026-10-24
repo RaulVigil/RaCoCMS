@@ -11,8 +11,6 @@ import FieldGroups from './pages/FieldGroups';
 import FieldGroupEditor from './pages/FieldGroupEditor';
 import Taxonomies from './pages/Taxonomies';
 import TaxonomyTerms from './pages/TaxonomyTerms';
-import Templates from './pages/Templates';
-import GlobalParts from './pages/GlobalParts';
 import Menus from './pages/Menus';
 import Media from './pages/Media';
 import Ai from './pages/Ai';
@@ -23,6 +21,9 @@ const EntryEditor = lazy(() => import('./pages/EntryEditor'));
 const SiteSettings = lazy(() => import('./pages/SiteSettings'));
 // Página a pantalla completa, fuera del layout del panel
 const Preview = lazy(() => import('./pages/Preview'));
+// Vista previa real del header/footer (compilador de Tailwind en vivo)
+const GlobalParts = lazy(() => import('./pages/GlobalParts'));
+const Templates = lazy(() => import('./pages/Templates'));
 
 const loading = <p className="text-sm text-tertiary">Cargando...</p>;
 
@@ -65,8 +66,22 @@ export default function App() {
           <Route path="field-groups/:groupId" element={<FieldGroupEditor />} />
           <Route path="taxonomies" element={<Taxonomies />} />
           <Route path="taxonomies/:taxonomyId" element={<TaxonomyTerms />} />
-          <Route path="templates" element={<Templates />} />
-          <Route path="global-parts" element={<GlobalParts />} />
+          <Route
+            path="templates"
+            element={
+              <Suspense fallback={loading}>
+                <Templates />
+              </Suspense>
+            }
+          />
+          <Route
+            path="global-parts"
+            element={
+              <Suspense fallback={loading}>
+                <GlobalParts />
+              </Suspense>
+            }
+          />
           <Route path="menus" element={<Menus />} />
           <Route path="media" element={<Media />} />
           <Route path="ai" element={<Ai />} />

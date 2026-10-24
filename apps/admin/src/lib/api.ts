@@ -1,3 +1,5 @@
+import type { IMedia } from '@raco/shared';
+
 const BASE = '/api/v1';
 
 function getToken(): string | null {
@@ -34,7 +36,7 @@ export const api = {
 };
 
 // Subida de archivos: multipart, sin el Content-Type JSON de request()
-export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
+export async function uploadFile(file: File): Promise<IMedia> {
   const token = getToken();
   const body = new FormData();
   body.append('file', file);

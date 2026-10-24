@@ -59,6 +59,7 @@ export interface ColumnProps {
 
 export interface HeadingProps {
   text: string;
+  url: string; // opcional: el título entero es un enlace (ej. nombre del sitio en el header)
   level: 1 | 2 | 3 | 4;
   size: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   align: Align;
@@ -75,6 +76,7 @@ export interface TextProps {
 export interface ImageProps {
   src: string;
   alt: string;
+  url: string; // opcional: la imagen es un enlace (ej. el logo lleva a la portada)
   aspect: 'auto' | 'square' | 'video' | 'portrait';
   rounded: boolean;
   shadow: boolean;
@@ -178,6 +180,27 @@ export interface TestimonialProps {
   align: Align;
 }
 
+export interface MenuProps {
+  menuId: string;
+  layout: 'horizontal' | 'vertical';
+  align: Align;
+  mobile: 'hamburger' | 'list'; // en móvil: botón ☰ o la lista tal cual
+  gap: 'sm' | 'md' | 'lg';
+}
+
+// Listado de entradas: las de la página actual (plantilla de listado) o las últimas de una colección
+export interface PostsProps {
+  source: string; // 'current' o el id de una colección
+  limit: number;
+  columns: Responsive<number>;
+  showImage: boolean;
+  showDate: boolean;
+  showExcerpt: boolean;
+  variant: 'plain' | 'card';
+  imageAspect: 'video' | 'square' | 'portrait';
+  pagination: boolean;
+}
+
 export interface MapProps {
   address: string;
   zoom: number;
@@ -204,6 +227,8 @@ export interface BlockPropsMap {
   counter: CounterProps;
   testimonial: TestimonialProps;
   map: MapProps;
+  menu: MenuProps;
+  posts: PostsProps;
 }
 
 export type BlockType = keyof BlockPropsMap;
@@ -236,9 +261,9 @@ export const blockDefaults: { [K in BlockType]: BlockPropsMap[K] } = {
     verticalAlign: 'start',
     textAlign: 'inherit',
   },
-  heading: { text: 'Escribe tu título', level: 2, size: 'lg', align: 'left', color: 'auto' },
+  heading: { text: 'Escribe tu título', url: '', level: 2, size: 'lg', align: 'left', color: 'auto' },
   text: { content: null, size: 'md', align: 'left', color: 'auto' },
-  image: { src: '', alt: '', aspect: 'auto', rounded: false, shadow: false },
+  image: { src: '', alt: '', url: '', aspect: 'auto', rounded: false, shadow: false },
   button: { text: 'Botón', url: '#', variant: 'primary', size: 'md', align: 'left', newTab: false },
   video: { url: '' },
   list: { items: ['Primer punto', 'Segundo punto', 'Tercer punto'], marker: 'check', color: 'auto' },
@@ -285,6 +310,18 @@ export const blockDefaults: { [K in BlockType]: BlockPropsMap[K] } = {
     align: 'left',
   },
   map: { address: 'Plaza de Armas, Lima', zoom: 15, height: 'md' },
+  menu: { menuId: 'main', layout: 'horizontal', align: 'right', mobile: 'hamburger', gap: 'md' },
+  posts: {
+    source: 'current',
+    limit: 6,
+    columns: { desktop: 3, tablet: 2, mobile: 1 },
+    showImage: true,
+    showDate: true,
+    showExcerpt: true,
+    variant: 'plain',
+    imageAspect: 'video',
+    pagination: true,
+  },
 };
 
 export const defaultVisibility: Visibility = { desktop: true, tablet: true, mobile: true };

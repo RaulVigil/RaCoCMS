@@ -1,7 +1,21 @@
 import type { DragEvent, MouseEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, EyeOff, GripVertical, Plus, Trash2 } from 'lucide-react';
 import type { IPageBlock } from '@raco/shared';
-import { blockComponents, canDropInto, cx, designVarClasses, EditorContext, isContainer, locate, visibilityOf } from '@raco/blocks';
+import {
+  ArchiveContext,
+  blockComponents,
+  canDropInto,
+  cx,
+  designVarClasses,
+  EditorContext,
+  EntryContext,
+  isContainer,
+  locate,
+  PostsContext,
+  resolveDynamic,
+  SiteContext,
+  visibilityOf,
+} from '@raco/blocks';
 import { useBuilder, type AddKind } from './context';
 import { metaOf } from './meta';
 
@@ -33,6 +47,10 @@ export default function Canvas() {
       }}
     >
       <EditorContext.Provider value={true}>
+        <SiteContext.Provider value={{ menus: b.menus }}>
+        <EntryContext.Provider value={b.entryData}>
+        <ArchiveContext.Provider value={b.archiveData}>
+        <PostsContext.Provider value={b.posts}>
         {/* La paleta y fuentes del sitio se aplican solo aquí dentro (variables con alcance) */}
         <div
           className={cx(
@@ -54,6 +72,10 @@ export default function Canvas() {
             />
           </div>
         </div>
+        </PostsContext.Provider>
+        </ArchiveContext.Provider>
+        </EntryContext.Provider>
+        </SiteContext.Provider>
       </EditorContext.Provider>
     </div>
   );
@@ -63,6 +85,8 @@ function EditableBlock({ block }: { block: IPageBlock }) {
   const b = useBuilder();
   const Component = blockComponents[block.type];
   if (!Component) return null;
+  // Lo que se dibuja lleva los datos de la entrada de muestra; lo que se edita sigue siendo el bloque original
+  const shown = resolveDynamic(block, b.entryData);
 
   const meta = metaOf(block.type);
   const selected = b.selectedId === block.id;
@@ -171,14 +195,14 @@ function EditableBlock({ block }: { block: IPageBlock }) {
     return (
       <div {...handlers} className={cx('relative', outline)}>
         {overlay}
-        <Component block={block} />
+        <Component block={shown} />
       </div>
     );
   }
 
   const children = block.children ?? [];
   return (
-    <Component block={block} attrs={{ ...handlers, className: outline }} overlay={overlay}>
+    <Component block={shown} attrs={{ ...handlers, className: outline }} overlay={overlay}>
       {children.map((child) => (
         <EditableBlock key={child.id} block={child} />
       ))}
